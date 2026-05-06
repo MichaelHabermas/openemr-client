@@ -89,7 +89,7 @@ app.get("/api/patients", async (req, res) => {
 const distDir = path.join(import.meta.dir, "..", "dist");
 if (fs.existsSync(distDir)) {
   app.use(express.static(distDir));
-  app.get("*", (req, res) => {
+  app.get("/*splat", (req, res) => {
     if (req.path.startsWith("/api")) {
       res.status(404).json({ error: "Not found" });
       return;
