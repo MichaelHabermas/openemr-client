@@ -1,218 +1,696 @@
-# OpenEMR Patient Dashboard Modernization Plan
+# OpenEMR Patient Dashboard Modernization Execution Plan
 
-## Goal
+## How To Use This Plan
 
-Port the OpenEMR patient dashboard presentation layer to this repository's Vite + React + TypeScript application while preserving OpenEMR as the clinical system of record.
+This is the working execution tracker for modernizing the OpenEMR patient dashboard in this repo. It is meant for AI coding agents and humans to use directly while building, not just as an architecture note.
 
-The work should reimplement dashboard presentation and data orchestration only. Do not modify the sibling OpenEMR PHP application, database schema, or backend behavior in `/Users/michaelhabermas/repos/GAI/openemr`. The React app should consume OpenEMR's existing OAuth2/OpenID Connect, REST, and FHIR APIs through the existing Express BFF.
+Update this file as implementation progresses.
 
-The target is feature parity with the challenge brief in `docs/AgentForge—Clinical-Co-Pilot-W2—Surprise-Challenge_Modernize-the-Patient-Dashboard.txt` and the product requirements in `docs/PRD.md`, not a speculative redesign of clinical workflows.
+Status markers:
 
-## Current State
+- `[ ]` Not started
+- `[~]` In progress
+- `[x]` Complete and verified
+- `[!]` Blocked; add a blocker note before moving on
+- `[?]` Needs product or technical decision
 
-- The repo already uses Bun, Vite, React, and TypeScript.
-- The frontend lives under `src/`.
-- The Express BFF lives under `server/`.
-- OAuth login, callback, logout, and a basic patient-list FHIR proxy already exist.
-- `/patients` currently renders a basic FHIR Patient bundle as patient name/id rows.
-- The dashboard route, persistent patient header, required clinical cards, encounter history, expanded FHIR typing, and migration defense document still need to be implemented.
+Rules for agents:
 
-## Architecture Principles
-
-- Use Bun for scripts and package workflows.
+- Mark a task `[~]` before starting it.
+- Mark a task `[x]` only after its Definition of Done and verification steps pass.
+- Add a short completion note when finishing an epic or task.
+- Do not silently expand scope. Add new tasks under the relevant epic.
+- Do not edit `/Users/michaelhabermas/repos/GAI/openemr`; use it as reference only.
+- Do not read `.env` or other live env files. Use `.env.example` and ask a human to verify local values.
+- Use Bun for all scripts and package workflows.
+- Keep OpenEMR as the system of record.
 - Keep OAuth client secrets and token exchange server-only.
-- Keep browser code talking only to same-origin `/api/*` BFF routes.
-- Prefer OpenEMR-supported FHIR resources before OpenEMR REST fallbacks.
-- Keep route components thin.
-- Deepen `src/features/patients` into the primary patient-dashboard module.
-- Separate raw FHIR wire types from UI-facing dashboard models.
-- Normalize FHIR payloads once at the feature boundary instead of parsing optional nested FHIR structures throughout components.
-- Apply SOLID, DRY, and modular design by giving API transport, FHIR normalization, route orchestration, and presentation separate responsibilities.
 
-## Backend And FHIR Plan
+## Mission
 
-Expand the BFF from the existing patient bundle proxy into patient-scoped clinical resource proxies.
+Port the OpenEMR patient dashboard presentation layer to the existing Vite + React + TypeScript app, backed by the existing Express BFF. The goal is feature parity with the challenge brief in `docs/AgentForge—Clinical-Co-Pilot-W2—Surprise-Challenge_Modernize-the-Patient-Dashboard.txt` and the requirements in `docs/PRD.md`.
 
-Required BFF endpoints:
+This is not a broad clinical workflow redesign. This is a modern presentation-layer reimplementation that consumes OpenEMR OAuth, REST, and FHIR APIs.
 
-- `GET /api/patients`
-- `GET /api/patients/:patientId`
-- `GET /api/patients/:patientId/allergies`
-- `GET /api/patients/:patientId/problems`
-- `GET /api/patients/:patientId/medications`
-- `GET /api/patients/:patientId/prescriptions`
-- `GET /api/patients/:patientId/care-team`
-- `GET /api/patients/:patientId/encounters`
+## System Diagram
 
-FHIR resource mapping:
+```mermaid
+flowchart LR
+  User["Clinician / staff user"] --> Browser["React app<br/>Vite + TypeScript"]
+  Browser -->|same-origin fetch /api/*<br/>cookie included| BFF["Express BFF<br/>server/"]
+  Browser -->|GET /login| BFF
+  BFF -->|OAuth authorize redirect| OAuth["OpenEMR OAuth2/OIDC"]
+  OAuth -->|authorization code| BFF
+  BFF -->|server-side token exchange<br/>client_secret never leaves server| OAuth
+  BFF -->|Bearer access token| FHIR["OpenEMR FHIR / REST APIs"]
+  FHIR -->|raw FHIR bundles/resources| BFF
+  BFF -->|raw API payloads or controlled errors| Browser
+  Browser --> Normalizers["patients feature normalizers"]
+  Normalizers --> UI["Patient search, header,<br/>clinical cards, encounter history"]
+```
 
-| Dashboard Section | Preferred OpenEMR API Source |
-| --- | --- |
-| Patient header | `Patient/:id` |
-| Allergies | `AllergyIntolerance?patient={patientId}` |
-| Problem List | `Condition?patient={patientId}` |
-| Medications | `MedicationRequest?patient={patientId}` first; document any fallback |
-| Prescriptions | `MedicationRequest?patient={patientId}` first; document distinction from Medications |
-| Care Team | `CareTeam?patient={patientId}` |
-| Encounter History | `Encounter?patient={patientId}` |
+## FHIR Normalization Pipeline
 
-Treat `MedicationStatement` as unavailable unless implementation later verifies it in OpenEMR FHIR routes. If Medications and Prescriptions are both initially backed by `MedicationRequest`, keep them visually and semantically separate and document the mapping in `PATIENT_DASHBOARD_MIGRATION.md`.
+```mermaid
+flowchart TB
+  Raw["Raw FHIR resource / Bundle"] --> Guard["Runtime guard + extraction"]
+  Guard --> Model["UI-facing patient/dashboard model"]
+  Model --> Components["React components"]
+  Components --> States["Loading / Empty / Partial / Error / Success"]
+```
 
-Update default OAuth scope to read-only dashboard needs:
+## Epic Dependency Map
+
+```mermaid
+flowchart LR
+  E1["E1 Testable BFF foundation"] --> E2["E2 OAuth + session hardening"]
+  E1 --> E3["E3 FHIR clinical proxy layer"]
+  E3 --> E4["E4 Patient feature module"]
+  E4 --> E5["E5 Patient search + selection"]
+  E4 --> E6["E6 Dashboard shell + header"]
+  E6 --> E7["E7 Clinical cards"]
+  E7 --> E8["E8 Encounter history"]
+  E3 --> E9["E9 Migration defense doc"]
+  E5 --> E10["E10 Final QA + acceptance"]
+  E8 --> E10
+  E9 --> E10
+```
+
+## Epic Tracker
+
+| Epic | Status | Purpose |
+| --- | --- | --- |
+| E1: Testable BFF Foundation | `[ ]` | Split server wiring from listener startup and establish test seams. |
+| E2: OAuth And Session Hardening | `[ ]` | Replace static OAuth state and tighten auth/session behavior. |
+| E3: FHIR Clinical Proxy Layer | `[ ]` | Add patient-scoped proxy endpoints for required dashboard resources. |
+| E4: Patient Feature Module | `[ ]` | Deepen `src/features/patients` with API, types, normalizers, hooks, and components. |
+| E5: Patient Search And Selection | `[ ]` | Upgrade `/patients` into the deliberate patient picker. |
+| E6: Dashboard Shell And Patient Header | `[ ]` | Add `/patients/:patientId` and persistent patient identity header. |
+| E7: Required Clinical Cards | `[ ]` | Render Allergies, Problem List, Medications, Prescriptions, and Care Team. |
+| E8: Encounter History | `[ ]` | Render additional API-backed Encounter History section. |
+| E9: Migration Defense Documentation | `[ ]` | Add `PATIENT_DASHBOARD_MIGRATION.md`. |
+| E10: Final QA And Acceptance | `[ ]` | Verify full challenge/PRD completion. |
+
+## E1: Testable BFF Foundation
+
+Status: `[ ]`
+
+### Goal
+
+Make the Express BFF testable and easier to extend before adding OAuth hardening and many FHIR endpoints. The current `server/index.ts` starts the listener at import time, which makes route tests awkward and encourages endpoint logic to accrete in one file.
+
+### Likely Files
+
+- `server/index.ts`
+- `server/app.ts` or equivalent new app-factory file
+- `server/services/oauth-service.ts`
+- `server/services/fhir-service.ts`
+- `server/config.ts`
+- `server/**/*.test.ts`
+
+### Tasks
+
+#### E1.T1: Split Express app creation from listener startup
+
+Status: `[ ]`
+
+Work:
+
+- Extract app creation into a pure factory, for example `createApp({ config, oauth, fhir })`.
+- Keep `server/index.ts` responsible for loading config, creating services, creating the app, serving `dist`, and calling `listen`.
+- Preserve current runtime behavior for `bun run dev:server` and production serving.
+
+Definition of Done:
+
+- Importing the app factory does not start a network listener.
+- Existing routes still behave the same at runtime.
+- Static `dist` serving behavior is preserved.
+- The app factory can accept fake OAuth/FHIR services in tests.
+
+Verify:
+
+```bash
+bun run typecheck
+bun test
+```
+
+#### E1.T2: Define server service interfaces for dependency injection
+
+Status: `[ ]`
+
+Work:
+
+- Keep or formalize `OAuthService` and `FhirService` interfaces.
+- Make route code depend on interfaces, not concrete service constructors.
+- Avoid global mutable service state in route handlers.
+
+Definition of Done:
+
+- Tests can inject fake OAuth and FHIR services.
+- Runtime still uses `createOAuthService(config)` and `createFhirService(config)`.
+- No client secret is exposed outside config and OAuth service internals.
+
+Verify:
+
+```bash
+bun run typecheck
+```
+
+#### E1.T3: Add baseline BFF route tests
+
+Status: `[ ]`
+
+Work:
+
+- Add Bun tests for current route behavior using the app factory.
+- Cover `GET /login`, `GET /callback` missing code, `POST /api/logout`, and `GET /api/patients` missing cookie.
+- Use fake services rather than live OpenEMR.
+
+Definition of Done:
+
+- Tests prove missing auth returns `401` for protected API routes.
+- Tests prove logout returns `204` and clears the access-token cookie.
+- Tests prove callback without `code` returns `400`.
+- Tests do not require `.env` or a running OpenEMR instance.
+
+Verify:
+
+```bash
+bun test
+```
+
+#### E1.T4: Add config tests without reading live `.env`
+
+Status: `[ ]`
+
+Work:
+
+- Test required env validation.
+- Test trailing slash trimming for `OPENEMR_URL` and `APP_ORIGIN`.
+- Test default `PORT`.
+- Test default OAuth scope after E2 updates it.
+
+Definition of Done:
+
+- Tests isolate `process.env` safely and restore it afterward.
+- No test reads `.env`.
+- Missing env vars throw clear errors.
+
+Verify:
+
+```bash
+bun test
+```
+
+### Epic Definition of Done
+
+- `server/index.ts` no longer has to be imported to test route behavior.
+- Core BFF routes have automated tests.
+- Dependency injection seams exist for OAuth and FHIR services.
+- `bun run typecheck` and `bun test` pass.
+
+### Risks
+
+- Express app factory extraction can accidentally break static `dist` fallback routing.
+- Tests may need lightweight HTTP request tooling; prefer Bun-compatible minimal dependencies and avoid adding heavy tooling unless needed.
+
+## E2: OAuth And Session Hardening
+
+Status: `[ ]`
+
+### Goal
+
+Replace the current static OAuth `state=abc123` behavior with per-login state validation and tighten session/error behavior without changing the browser-visible contract.
+
+### Likely Files
+
+- `server/index.ts`
+- `server/app.ts`
+- `server/config.ts`
+- `server/constants.ts`
+- `server/services/oauth-service.ts`
+- `server/**/*.test.ts`
+- `.env.example`
+
+### Tasks
+
+#### E2.T1: Add OAuth state cookie constant and generation helper
+
+Status: `[ ]`
+
+Work:
+
+- Add a dedicated OAuth state cookie name.
+- Generate cryptographically strong state values server-side.
+- Keep state transient and httpOnly.
+
+Definition of Done:
+
+- State values are not hard-coded.
+- State cookie options are explicit: `httpOnly`, `sameSite: "lax"`, `path`, and `secure` in production.
+- Helper is testable without relying on a real OAuth provider.
+
+Verify:
+
+```bash
+bun run typecheck
+bun test
+```
+
+#### E2.T2: Update `GET /login` to store and send dynamic state
+
+Status: `[ ]`
+
+Work:
+
+- Generate state per login request.
+- Set OAuth state cookie before redirecting.
+- Include the same state value in the OpenEMR authorization URL.
+- Keep all URL params encoded.
+
+Definition of Done:
+
+- Route tests prove the redirect URL contains a state matching the cookie.
+- Existing OAuth params remain present: `response_type=code`, `client_id`, `redirect_uri`, and `scope`.
+- No client secret appears in the authorization URL.
+
+Verify:
+
+```bash
+bun test
+```
+
+#### E2.T3: Validate OAuth state in `GET /callback`
+
+Status: `[ ]`
+
+Work:
+
+- Read `state` from callback query.
+- Compare it with the state cookie.
+- Reject missing or mismatched state before token exchange.
+- Clear state cookie after success or failure.
+
+Definition of Done:
+
+- Missing state returns or redirects to a controlled OAuth error path.
+- Mismatched state does not call `exchangeCodeForToken`.
+- Matching state proceeds with token exchange.
+- State cookie is cleared in success and failure paths.
+
+Verify:
+
+```bash
+bun test
+```
+
+#### E2.T4: Update default OAuth scopes to dashboard read-only scopes
+
+Status: `[ ]`
+
+Work:
+
+- Replace the existing default scope with:
 
 ```text
 openid api:fhir api:oemr user/Patient.read user/AllergyIntolerance.read user/Condition.read user/MedicationRequest.read user/CareTeam.read user/Encounter.read
 ```
 
-Harden OAuth state during implementation:
+- Update `.env.example` if it lists scopes.
+- Do not add write scopes for dashboard display.
 
-- Generate a per-login `state` value in `GET /login`.
-- Store it in a transient httpOnly cookie.
-- Validate it in `GET /callback`.
-- Clear it after successful or failed validation.
-- Keep `client_secret` only in server config and OAuth token exchange code.
+Definition of Done:
 
-Standardize BFF error mapping:
+- Default config scope covers all required dashboard resources.
+- Tests assert the default scope.
+- `.env.example` remains safe and does not include secrets.
 
-- Missing cookie: `401 { "error": "not_authenticated" }`.
-- Upstream OAuth/token failure: redirect to `/?error=oauth` and log only sanitized details.
-- Upstream FHIR `401`: clear token cookie and return `401 { "error": "upstream_auth_failed" }`.
-- Upstream FHIR `403`: return `403 { "error": "forbidden" }`.
-- Upstream FHIR `404`: return `404 { "error": "not_found" }`.
-- Upstream FHIR `400`: return `400 { "error": "bad_fhir_request" }`.
-- Upstream network or `5xx`: return `502 { "error": "fhir_unavailable" }`.
+Verify:
 
-## Frontend Plan
+```bash
+bun run typecheck
+bun test
+```
 
-Keep `/patients` as the deliberate patient search and selection entry point. Add `/patients/:patientId` as the patient dashboard route.
+#### E2.T5: Sanitize OAuth failure behavior
 
-Recommended feature module shape:
+Status: `[ ]`
 
-- `src/features/patients/api.ts`: patient-specific client calls wrapping `src/lib/api/http.ts`.
-- `src/features/patients/fhir.ts` or `src/features/patients/normalizers.ts`: FHIR bundle/resource guards and normalization.
-- `src/features/patients/types.ts`: UI-facing `PatientSummary`, `PatientDashboardModel`, and clinical row types.
-- `src/features/patients/hooks.ts`: `usePatients` and `usePatientDashboard(patientId)`.
-- `src/features/patients/components/`: patient list, patient row, dashboard shell, patient header, clinical cards, and encounter history.
+Work:
 
-Route responsibilities:
+- Keep user-facing redirect to `/?error=oauth` or an equivalent controlled error state.
+- Log only sanitized server-side messages.
+- Do not log authorization codes, access tokens, client secrets, or raw patient data.
 
-- `src/routes/PatientsPage.tsx` should compose patient search/list components.
-- Add a dashboard route component that reads `patientId` from route params and composes the dashboard feature.
-- Routes should not parse FHIR bundles or know clinical resource field mapping.
+Definition of Done:
 
-Patient list behavior:
+- OAuth errors remain understandable to users.
+- Sensitive values are not logged in route handlers.
+- Tests cover token exchange failure path.
 
-- Show a search input.
-- Filter by display name, given/family names, patient id, DOB, sex, and MRN/identifier where present.
-- Show rows as keyboard-accessible links or buttons.
-- Each row must show name, DOB, sex, MRN/identifier, and active status when available.
-- Use explicit fallbacks such as `Unknown`, `Not recorded`, and `No MRN`.
-- Do not auto-select the first patient.
-- Empty searches should not clear authentication or navigate away.
+Verify:
 
-Dashboard layout:
+```bash
+bun test
+```
 
-- Persistent patient identity header at top.
-- Required clinical card grid below the header:
-  - Allergies
-  - Problem List
-  - Medications
-  - Prescriptions
-  - Care Team
-- Encounter History as the additional wider section below the clinical cards.
+### Epic Definition of Done
 
-Clinical card behavior:
+- OAuth authorization state is generated, stored, validated, and cleared.
+- Token exchange still happens server-side only.
+- Default scopes match read-only dashboard needs.
+- Auth tests pass without a live OpenEMR instance.
+- `bun run typecheck` and `bun test` pass.
 
-- Each card must load independently.
-- Each card must have independent loading, empty, partial-data, and error states.
-- One failed resource must not blank the entire dashboard.
-- Missing fields should render explicit fallback text.
-- Status must not rely on color alone; include text labels.
-- Encounter History should sort reverse chronologically when dates exist.
+### Risks
 
-## Required Dashboard Fields
+- Cookie path or `sameSite` settings can break local callback behavior if changed carelessly.
+- OpenEMR client registration must match `REDIRECT_URI`; humans must verify local env values.
 
-Patient header:
+## E3: FHIR Clinical Proxy Layer
 
-- Name from FHIR `Patient.name`.
-- Date of birth from `Patient.birthDate`.
-- Sex from `Patient.gender`.
-- MRN from an appropriate `Patient.identifier`.
-- Active status from `Patient.active`.
+Status: `[ ]`
 
-Allergies:
+### Goal
 
-- Allergen/substance.
-- Clinical status.
-- Verification status.
-- Reaction when available.
-- Severity when available.
+Expand the BFF into a small, consistent, patient-scoped FHIR proxy layer for every dashboard section required by the challenge brief.
 
-Problem List:
+### Likely Files
 
-- Condition text/code.
-- Clinical status.
-- Onset or recorded date when available.
-- Category when available.
-- Active/resolved distinction with text.
+- `server/services/fhir-service.ts`
+- `server/app.ts`
+- `server/index.ts`
+- `server/constants.ts`
+- `server/**/*.test.ts`
+- `src/lib/api/*` later, after frontend starts consuming these endpoints
 
-Medications:
+### Required Endpoint Map
 
-- Medication name.
-- Status.
-- Dosage instructions when available.
-- Authored/effective date when available.
-- Prescriber/requester when available.
+| BFF Endpoint | Upstream OpenEMR FHIR Request | Dashboard Use |
+| --- | --- | --- |
+| `GET /api/patients` | `Patient` | Patient search/list |
+| `GET /api/patients/:patientId` | `Patient/:patientId` | Patient header |
+| `GET /api/patients/:patientId/allergies` | `AllergyIntolerance?patient={patientId}` | Allergies card |
+| `GET /api/patients/:patientId/problems` | `Condition?patient={patientId}` | Problem List card |
+| `GET /api/patients/:patientId/medications` | `MedicationRequest?patient={patientId}` | Medications card, first pass |
+| `GET /api/patients/:patientId/prescriptions` | `MedicationRequest?patient={patientId}` | Prescriptions card, first pass |
+| `GET /api/patients/:patientId/care-team` | `CareTeam?patient={patientId}` | Care Team card |
+| `GET /api/patients/:patientId/encounters` | `Encounter?patient={patientId}` | Encounter History |
 
-Prescriptions:
+### Tasks
 
-- Medication name.
-- Status.
-- Intent when available.
-- Authored date when available.
-- Dosage when available.
-- Requester/prescriber when available.
+#### E3.T1: Add generic FHIR request helper
 
-Care Team:
+Status: `[ ]`
 
-- Participant name or reference.
-- Role.
-- Status.
-- Contact/reference information when available.
+Work:
 
-Encounter History:
+- Add a helper in `fhir-service` for authenticated upstream FHIR GET requests.
+- Ensure resource names and patient ids are URL-encoded where needed.
+- Return upstream data unchanged to the BFF route layer.
+- Keep bearer token handling inside the server.
 
-- Type/class.
-- Status.
-- Start date/time.
-- End date/time when available.
-- Location when available.
-- Participant/provider when available.
+Definition of Done:
 
-## Required Documentation
+- Existing patient bundle behavior still works.
+- New helper supports resource reads and patient-scoped searches.
+- Tests cover URL construction and `Authorization: Bearer <token>` headers.
 
-The implementation must add `PATIENT_DASHBOARD_MIGRATION.md` at the repository root.
+Verify:
 
-That document must include:
+```bash
+bun run typecheck
+bun test
+```
+
+#### E3.T2: Add shared access-token requirement helper
+
+Status: `[ ]`
+
+Work:
+
+- Centralize cookie lookup and missing-token handling.
+- Use it for all protected `/api/*` routes.
+- Do not duplicate cookie-checking logic across every endpoint.
+
+Definition of Done:
+
+- Missing cookie returns a consistent `401 { "error": "not_authenticated" }`.
+- Existing `/api/patients` uses the shared helper.
+- Tests cover at least one protected endpoint missing-cookie path.
+
+Verify:
+
+```bash
+bun test
+```
+
+#### E3.T3: Add shared FHIR error mapping
+
+Status: `[ ]`
+
+Work:
+
+- Map upstream FHIR/OAuth/network errors to controlled responses.
+- Avoid leaking access tokens, client secrets, or raw PHI payloads.
+- Preserve useful status categories for frontend card-level states.
+
+Definition of Done:
+
+- Upstream `400`, `401`, `403`, `404`, and `5xx`/network errors produce consistent JSON.
+- Upstream `401` clears the access-token cookie.
+- Tests cover each mapped status category.
+
+Verify:
+
+```bash
+bun test
+```
+
+#### E3.T4: Implement individual patient proxy
+
+Status: `[ ]`
+
+Work:
+
+- Add `GET /api/patients/:patientId`.
+- Proxy to `Patient/:patientId`.
+- Use shared token and error helpers.
+
+Definition of Done:
+
+- Authenticated route returns upstream patient payload.
+- Missing cookie returns `401`.
+- Upstream `404` maps to controlled not-found JSON.
+
+Verify:
+
+```bash
+bun test
+```
+
+#### E3.T5: Implement clinical bundle proxy endpoints
+
+Status: `[ ]`
+
+Work:
+
+- Add endpoints for allergies, problems, medications, prescriptions, care team, and encounters.
+- Use patient-scoped FHIR search parameters.
+- Keep `MedicationRequest` as the first-pass source for both Medications and Prescriptions.
+
+Definition of Done:
+
+- Every required endpoint exists.
+- Every endpoint requires auth.
+- Every endpoint uses shared FHIR helper and error mapping.
+- Tests prove each endpoint calls the expected upstream resource.
+
+Verify:
+
+```bash
+bun run typecheck
+bun test
+```
+
+#### E3.T6: Document known API mapping uncertainty
+
+Status: `[ ]`
+
+Work:
+
+- Add a note in this plan, implementation comments only where needed, or `PATIENT_DASHBOARD_MIGRATION.md` later that `MedicationStatement` is not assumed available.
+- Record that Medications vs Prescriptions mapping may evolve after fixture/API verification.
+
+Definition of Done:
+
+- Future agents know not to invent `MedicationStatement` support without verifying OpenEMR routes.
+- The distinction is captured for later migration documentation.
+
+Verify:
+
+```bash
+bun run typecheck
+```
+
+### Epic Definition of Done
+
+- All required patient-scoped BFF endpoints exist.
+- All endpoints are auth-protected.
+- Upstream FHIR calls are centralized and tested.
+- Error mapping is consistent and sanitized.
+- `bun run typecheck` and `bun test` pass.
+
+### Risks
+
+- OpenEMR FHIR routes may have quirks around search parameters or patient references.
+- Medication and prescription mapping is likely to need revision after live fixture testing.
+- Returning raw upstream bundles keeps the BFF simple but pushes normalization responsibility to the frontend feature boundary.
+
+## E4: Patient Feature Module
+
+Status: `[ ]`
+
+Stub for later expansion.
+
+Purpose:
+
+- Deepen `src/features/patients` into the main frontend boundary for patient API calls, FHIR guards, normalizers, UI models, hooks, and patient-specific components.
+
+Expected outputs:
+
+- Patient API client methods for all BFF endpoints.
+- Generic FHIR bundle helpers.
+- UI-facing model types.
+- Normalizers for `Patient`, `AllergyIntolerance`, `Condition`, `MedicationRequest`, `CareTeam`, and `Encounter`.
+- Async state pattern for loading/success/error/empty handling.
+
+Definition of Done:
+
+- Route components no longer parse FHIR directly.
+- Components consume UI-facing models.
+- FHIR normalization tests cover missing and malformed fields.
+
+## E5: Patient Search And Selection
+
+Status: `[ ]`
+
+Stub for later expansion.
+
+Purpose:
+
+- Upgrade `/patients` from a basic patient-name list into a deliberate patient picker.
+
+Expected outputs:
+
+- Search input.
+- Patient rows showing name, DOB, sex, MRN/identifier, and active status.
+- Client-side filtering over fetched patient bundle fields.
+- Keyboard-accessible row navigation to `/patients/:patientId`.
+- Empty, loading, and error states.
+
+Definition of Done:
+
+- No auto-selection of first patient.
+- Empty search does not log the user out.
+- Similar patients can be distinguished by identity metadata.
+
+## E6: Dashboard Shell And Patient Header
+
+Status: `[ ]`
+
+Stub for later expansion.
+
+Purpose:
+
+- Add `/patients/:patientId` and render the dashboard frame with a persistent patient identity header.
+
+Expected outputs:
+
+- Thin dashboard route.
+- Patient header with name, DOB, sex, MRN, and active status.
+- Explicit fallback labels for missing fields.
+- Dashboard layout that reserves space for clinical cards and Encounter History.
+
+Definition of Done:
+
+- Dashboard route fetches patient identity through the BFF.
+- Header remains visible above clinical content.
+- Header does not rely on color alone for active/inactive status.
+
+## E7: Required Clinical Cards
+
+Status: `[ ]`
+
+Stub for later expansion.
+
+Purpose:
+
+- Render required clinical cards from live API-backed data.
+
+Cards:
+
+- Allergies
+- Problem List
+- Medications
+- Prescriptions
+- Care Team
+
+Definition of Done:
+
+- Each card loads independently.
+- Each card has loading, empty, partial-data, and error states.
+- One failed card does not blank the dashboard.
+- Medications and Prescriptions are visually and semantically distinct.
+
+## E8: Encounter History
+
+Status: `[ ]`
+
+Stub for later expansion.
+
+Purpose:
+
+- Render Encounter History as the additional challenge-required API-backed section.
+
+Definition of Done:
+
+- Encounters are fetched through the BFF.
+- Encounters sort reverse chronologically when dates exist.
+- Rows show type/class, status, start/end, location, and participant/provider when available.
+- Loading, empty, partial-data, and error states are present.
+
+## E9: Migration Defense Documentation
+
+Status: `[ ]`
+
+Stub for later expansion.
+
+Purpose:
+
+- Add `PATIENT_DASHBOARD_MIGRATION.md` at repo root as part of the challenge deliverable.
+
+Required contents:
 
 - Why Vite + React + TypeScript was chosen.
 - What was gained by moving dashboard presentation out of PHP-rendered pages.
-- Tradeoffs introduced by the architecture:
-  - BFF complexity.
-  - Duplicated presentation logic.
-  - Client-side loading and error states.
-  - Route and data orchestration.
-  - Build tooling.
-  - OAuth/session hardening.
-- A data mapping table for every dashboard section.
-- A clear statement that OpenEMR remains the system of record.
-- A clear statement that the OpenEMR backend, database, and PHP app were not modified.
-- Known limitations and demo-data assumptions.
-- The Medications versus Prescriptions mapping, especially if both are backed by `MedicationRequest`.
+- Tradeoffs introduced by BFF complexity, duplicated presentation logic, client-side loading/error handling, build tooling, and OAuth/session hardening.
+- Data mapping table for every dashboard section.
+- Statement that OpenEMR remains the system of record.
+- Statement that OpenEMR backend, database, and PHP app were not modified.
+- Medication vs Prescription mapping and known limitations.
 
-## Test Plan
+## E10: Final QA And Acceptance
 
-Run these commands before delivery:
+Status: `[ ]`
+
+Stub for later expansion.
+
+Purpose:
+
+- Verify the implementation against the challenge brief, `docs/PRD.md`, and this plan.
+
+Required verification commands:
 
 ```bash
 bun run typecheck
@@ -222,61 +700,51 @@ bun test
 bun run build
 ```
 
-Add focused Bun tests for:
-
-- FHIR normalization and malformed bundle handling.
-- Patient display helpers.
-- Client API error behavior.
-- BFF FHIR URL construction and patient-id/query encoding.
-- OAuth token exchange behavior.
-- OAuth state validation.
-- Server error mapping.
-
-Prefer extracting an Express app factory from `server/index.ts` so route tests can inject fake OAuth and FHIR services without starting the listener at import time.
-
-Manual QA must cover:
+Manual QA:
 
 - OAuth login and callback.
 - Logout and cookie clearing.
 - Missing or expired cookie behavior.
 - Patient search.
 - Patient dashboard navigation.
-- Independent clinical card loading, empty, partial, and error states.
-- Fixture patients Alex Testpatient and Riley Medmix from the sibling OpenEMR demo fixture.
+- Independent clinical card states.
+- Fixture patients Alex Testpatient and Riley Medmix.
 - Keyboard access and visible focus states.
 - No access tokens, client secrets, or raw PHI payloads in browser logs, client bundles, or server logs.
 
-## Risks And Mitigations
+## Acceptance Matrix
 
-| Risk | Mitigation |
-| --- | --- |
-| FHIR payload variation breaks UI rendering | Normalize raw resources into UI models and test missing/malformed fields. |
-| Medications and Prescriptions overlap in OpenEMR data | Keep separate cards and document mapping clearly. |
-| OAuth/client secret leakage | Keep token exchange and secrets in the BFF only; never expose server env through `VITE_`. |
-| PHI leakage in logs or errors | Use generic user-facing errors and sanitized server logs. |
-| Dashboard route grows too broad | Keep routes thin and push data/model/card logic into `src/features/patients`. |
-| One resource failure breaks dashboard | Fetch and render clinical cards independently. |
-| No current automated tests | Start with Bun unit tests around normalizers, helpers, API client, and BFF services. |
+| Requirement | Source | Implementation Area | Status | Verification |
+| --- | --- | --- | --- | --- |
+| OAuth login via OpenEMR | Challenge / PRD | E2 | `[ ]` | Route tests + manual login |
+| Server-only token exchange | Challenge / PRD | E2 | `[ ]` | Route tests + bundle/log review |
+| Patient search and selection | PRD | E5 | `[ ]` | UI tests/manual QA |
+| Stable dashboard route | PRD | E6 | `[ ]` | Route/UI tests |
+| Patient identity header | Challenge / PRD | E6 | `[ ]` | Normalizer tests + manual QA |
+| Allergies card | Challenge / PRD | E3, E7 | `[ ]` | BFF tests + UI/manual QA |
+| Problem List card | Challenge / PRD | E3, E7 | `[ ]` | BFF tests + UI/manual QA |
+| Medications card | Challenge / PRD | E3, E7 | `[ ]` | BFF tests + UI/manual QA |
+| Prescriptions card | Challenge / PRD | E3, E7 | `[ ]` | BFF tests + UI/manual QA |
+| Care Team card | Challenge / PRD | E3, E7 | `[ ]` | BFF tests + UI/manual QA |
+| Encounter History section | PRD | E3, E8 | `[ ]` | BFF tests + UI/manual QA |
+| Migration defense doc | Challenge / PRD | E9 | `[ ]` | Document review |
+| Final build/lint/test pass | PRD | E10 | `[ ]` | Bun commands |
 
-## Acceptance Criteria
+## Known Constraints And Non-Goals
 
-- `PLAN.md` exists at the repository root and describes the implementation plan.
-- `/patients` remains the search/selection entry point.
-- `/patients/:patientId` is the dashboard route in the later implementation.
-- Patient list rows include name, DOB, sex, MRN/identifier, and active status with explicit fallbacks.
-- Dashboard header displays name, DOB, sex, MRN, and active status from live FHIR Patient data.
-- Required cards render live data for Allergies, Problem List, Medications, Prescriptions, and Care Team.
-- Encounter History renders as the additional API-backed section.
-- Each card has independent loading, empty, partial-data, and error states.
-- OAuth scopes cover all selected dashboard resources.
-- OAuth state is generated and validated.
-- `PATIENT_DASHBOARD_MIGRATION.md` exists and defends the framework, architecture, data mapping, benefits, and tradeoffs.
-- Verification commands pass before final delivery.
+- Do not replace OpenEMR as the clinical system of record.
+- Do not modify OpenEMR PHP, backend, or database schema.
+- Do not build clinical write workflows.
+- Do not expose access tokens or OAuth client secrets to the browser.
+- Do not add `dotenv`; Bun loads env for this repo's BFF.
+- Do not implement AI-generated clinical summaries, diagnosis suggestions, treatment recommendations, or medication recommendations.
+- Do not aim for a pixel-perfect PHP clone; preserve information hierarchy and workflow expectations.
 
-## Assumptions
+## Open Questions To Resolve During Implementation
 
-- The sibling repo `/Users/michaelhabermas/repos/GAI/openemr` is reference-only.
-- Implementation will not read live `.env`; use `.env.example` and ask a human to verify local values.
-- OpenEMR remains the source of truth for patient and clinical data.
-- Dashboard work is read-only clinical display work; clinical write workflows are out of scope.
-- AI-generated clinical summaries, diagnoses, treatment suggestions, and medication recommendations are out of scope.
+| Question | Status | When To Resolve |
+| --- | --- | --- |
+| Is `MedicationRequest` sufficient for both Medications and Prescriptions in the live OpenEMR fixture? | `[?]` | During E3/E7 fixture QA |
+| Are additional OpenEMR REST endpoints needed for prescription parity? | `[?]` | During E3/E7 fixture QA |
+| Should patient search remain client-side or add BFF query passthrough? | `[?]` | During E5 after bundle-size check |
+| Which MRN identifier system is most reliable in OpenEMR FHIR Patient payloads? | `[?]` | During E4/E6 normalization |
