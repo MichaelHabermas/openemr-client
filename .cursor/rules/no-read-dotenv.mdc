@@ -1,0 +1,11 @@
+---
+description: Never read or dump real environment secret files; use templates only.
+alwaysApply: true
+---
+
+## Environment files and secrets
+
+- **Do not** use the Read tool, Grep, or any command that prints contents of `.env`, `.env.local`, `.env.production`, or other environment files that hold live credentials, **in this or any project**.
+- **Do** use `.env.example`, `.env.sample`, or documented variable names when explaining configuration.
+- If you need to verify env wiring, describe what variables the code expects and ask the human to confirm values locally. **Never** ask them to paste secrets into chat.
+- If a secret already appeared in conversation history, **do not repeat it**; treat it as compromised and suggest rotation if it was exposed.

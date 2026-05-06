@@ -1,0 +1,20 @@
+# Secrets & env (any depth). No bare **/.env.* — keeps .env.example / .env.sample in context.
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.development
+**/.env.production
+**/.env.test
+**/.env.staging
+**/.envrc
+
+# Common credential files
+**/credentials.json
+**/secrets.json
+**/*.pem
+**/id_rsa
+**/*.key
+
+# Safe templates — keep visible
+!**/.env.example
+!**/.env.sample
