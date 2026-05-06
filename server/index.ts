@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -82,6 +85,18 @@ app.get("/api/patients", async (req, res) => {
     res.status(500).json({ error: message });
   }
 });
+
+const distDir = path.join(import.meta.dir, "..", "dist");
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+  app.get("*", (req, res) => {
+    if (req.path.startsWith("/api")) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    res.sendFile(path.join(distDir, "index.html"));
+  });
+}
 
 app.listen(config.port, () => {
   console.log(`BFF listening on http://localhost:${config.port}`);
