@@ -44,6 +44,8 @@ Keep entries concise. Prefer notes that will change future engineering behavior 
 - **Live OpenEMR QA:** Automated tests prove route contracts, normalization, and render behavior, but not live OpenEMR fixture richness, permissions, browser refresh, or responsive layout.
 - **Medication source split:** Medications and Prescriptions are separate UI models/cards, but both currently source from `MedicationRequest`; do not claim true source-level separation until live API proof exists.
 - **Responsive/browser proof:** Server-rendered component tests do not prove sticky positioning, viewport wrapping, focus behavior, or real browser layout. Use browser QA before calling those complete.
+- **Automated proof scope:** E2 OAuth/session hardening and E4 patient feature work were proven with route/config/API/normalizer/component tests, not live OAuth login or live OpenEMR clinical data.
+- **Epic snapshots removed:** Do not recreate standalone per-epic completion files for E2/E4. Keep active tracking in `docs/PLAN.md`, durable lessons here, and product acceptance in `docs/PRD.md`.
 
 ## Durable Test Lessons
 
