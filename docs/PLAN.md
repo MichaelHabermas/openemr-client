@@ -82,7 +82,7 @@ flowchart LR
 | --- | --- | --- |
 | E1: Testable BFF Foundation | `[x]` | Split server wiring from listener startup and establish test seams. |
 | E2: OAuth And Session Hardening | `[ ]` | Replace static OAuth state and tighten auth/session behavior. |
-| E3: FHIR Clinical Proxy Layer | `[ ]` | Add patient-scoped proxy endpoints for required dashboard resources. |
+| E3: FHIR Clinical Proxy Layer | `[x]` | Add patient-scoped proxy endpoints for required dashboard resources. |
 | E4: Patient Feature Module | `[ ]` | Deepen `src/features/patients` with API, types, normalizers, hooks, and components. |
 | E5: Patient Search And Selection | `[ ]` | Upgrade `/patients` into the deliberate patient picker. |
 | E6: Dashboard Shell And Patient Header | `[ ]` | Add `/patients/:patientId` and persistent patient identity header. |
@@ -391,7 +391,9 @@ bun test
 
 ## E3: FHIR Clinical Proxy Layer
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: Added the closed patient-scoped FHIR proxy layer with a centralized FHIR service boundary, shared protected-route handling, patient detail and clinical bundle routes, sanitized error mapping, and Bun coverage for URL construction, bearer auth, route auth, clinical resource mapping, upstream error mapping, and token clearing. Verified with `bun run typecheck` and `bun test`.
 
 ### Goal
 
@@ -423,7 +425,9 @@ Expand the BFF into a small, consistent, patient-scoped FHIR proxy layer for eve
 
 #### E3.T1: Add generic FHIR request helper
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: `server/services/fhir-service.ts` now centralizes authenticated FHIR GET behavior for `Patient`, `Patient/:patientId`, and closed patient-scoped clinical searches. `server/services/fhir-service.test.ts` covers URL construction, encoded patient ids/search params, raw payload returns, and `Authorization: Bearer <token>`.
 
 Work:
 
@@ -447,7 +451,9 @@ bun test
 
 #### E3.T2: Add shared access-token requirement helper
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: `server/app.ts` now uses one protected FHIR route helper for all `/api/*` patient proxy endpoints, including the existing patient bundle route. Route tests prove missing cookies return canonical `not_authenticated` without calling FHIR.
 
 Work:
 
@@ -469,7 +475,9 @@ bun test
 
 #### E3.T3: Add shared FHIR error mapping
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: Existing E2 FHIR error mapping is reused across every E3 proxy route. Route tests cover upstream `400`, `401`, `403`, `404`, `500`, and network failures, including access-token cookie clearing on upstream `401`.
 
 Work:
 
@@ -491,7 +499,9 @@ bun test
 
 #### E3.T4: Implement individual patient proxy
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: Added `GET /api/patients/:patientId`, backed by `Patient/:patientId` through the FHIR service. Route tests cover authenticated success, missing-cookie `401`, and upstream `404` to `not_found`.
 
 Work:
 
@@ -513,7 +523,9 @@ bun test
 
 #### E3.T5: Implement clinical bundle proxy endpoints
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: Added allergies, problems, medications, prescriptions, care team, and encounters proxy routes. Each route requires auth and calls the shared FHIR clinical bundle method with the expected closed resource key; medications and prescriptions both map to `MedicationRequest`.
 
 Work:
 
@@ -537,12 +549,15 @@ bun test
 
 #### E3.T6: Document known API mapping uncertainty
 
-Status: `[ ]`
+Status: `[x]`
 
 Work:
 
 - Add a note in this plan, implementation comments only where needed, or `PATIENT_DASHBOARD_MIGRATION.md` later that `MedicationStatement` is not assumed available.
 - Record that Medications vs Prescriptions mapping may evolve after fixture/API verification.
+- Current note, 2026-05-07: `MedicationStatement` is unverified and must not be assumed available for OpenEMR without route/API proof. Initial medications and prescriptions proxy work should use `MedicationRequest` for both endpoints until fixture proof says otherwise.
+
+Completion note, 2026-05-07: The E3 FHIR service mapping, this plan, and `docs/MEMORY.md` all preserve the `MedicationRequest` first-pass mapping and explicitly avoid assuming `MedicationStatement` support.
 
 Definition of Done:
 

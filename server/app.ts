@@ -15,7 +15,7 @@ import {
 import type { AppConfig } from './config';
 import { apiErrorCodes } from './errors/api-errors';
 import { mapFhirError } from './errors/fhir-error-mapper';
-import type { FhirService } from './services/fhir-service';
+import type { ClinicalResourceKey, FhirService } from './services/fhir-service';
 import type { OAuthService } from './services/oauth-service';
 
 export interface AppServices {
@@ -28,6 +28,8 @@ export interface CreateAppOptions {
   services: AppServices;
 }
 
+type ProtectedFhirRequestHandler = (accessToken: string, req: express.Request) => Promise<unknown>;
+
 function firstQueryString(value: express.Request['query'][string]): string | undefined {
   if (typeof value === 'string') return value;
   if (Array.isArray(value)) {
@@ -35,6 +37,40 @@ function firstQueryString(value: express.Request['query'][string]): string | und
     return typeof first === 'string' ? first : undefined;
   }
   return undefined;
+}
+
+function patientIdParam(req: express.Request): string {
+  const { patientId } = req.params;
+  return Array.isArray(patientId) ? patientId[0] : patientId;
+}
+
+function protectedFhirRoute(
+  operation: string,
+  handler: ProtectedFhirRequestHandler,
+): express.RequestHandler {
+  return async (req, res) => {
+    const token = readAccessTokenCookie(req);
+    if (!token) {
+      res.status(401).json({ error: apiErrorCodes.notAuthenticated });
+      return;
+    }
+
+    try {
+      const payload = await handler(token, req);
+      res.json(payload);
+    } catch (error) {
+      const mapped = mapFhirError(error);
+      if (mapped.body.error === apiErrorCodes.upstreamAuthFailed) {
+        clearAccessTokenCookie(res);
+      }
+      console.error('FHIR proxy failed', {
+        operation,
+        status: mapped.status,
+        error: mapped.body.error,
+      });
+      res.status(mapped.status).json(mapped.body);
+    }
+  };
 }
 
 export function createApp({ config, services }: CreateAppOptions) {
@@ -93,24 +129,35 @@ export function createApp({ config, services }: CreateAppOptions) {
     res.status(204).end();
   });
 
-  app.get('/api/patients', async (req, res) => {
-    const token = readAccessTokenCookie(req);
-    if (!token) {
-      res.status(401).json({ error: apiErrorCodes.notAuthenticated });
-      return;
-    }
-    try {
-      const bundle = await services.fhir.fetchPatientBundle(token);
-      res.json(bundle);
-    } catch (error) {
-      const mapped = mapFhirError(error);
-      if (mapped.body.error === apiErrorCodes.upstreamAuthFailed) {
-        clearAccessTokenCookie(res);
-      }
-      console.error('FHIR proxy failed', { status: mapped.status, error: mapped.body.error });
-      res.status(mapped.status).json(mapped.body);
-    }
-  });
+  app.get(
+    '/api/patients',
+    protectedFhirRoute('fetchPatientBundle', (token) => services.fhir.fetchPatientBundle(token)),
+  );
+
+  app.get(
+    '/api/patients/:patientId',
+    protectedFhirRoute('fetchPatient', (token, req) =>
+      services.fhir.fetchPatient(token, patientIdParam(req)),
+    ),
+  );
+
+  function patientClinicalRoute(resourceKey: ClinicalResourceKey) {
+    return protectedFhirRoute(`fetchPatientClinicalBundle:${resourceKey}`, (token, req) =>
+      services.fhir.fetchPatientClinicalBundle(token, resourceKey, patientIdParam(req)),
+    );
+  }
+
+  app.get('/api/patients/:patientId/allergies', patientClinicalRoute('allergies'));
+
+  app.get('/api/patients/:patientId/problems', patientClinicalRoute('problems'));
+
+  app.get('/api/patients/:patientId/medications', patientClinicalRoute('medications'));
+
+  app.get('/api/patients/:patientId/prescriptions', patientClinicalRoute('prescriptions'));
+
+  app.get('/api/patients/:patientId/care-team', patientClinicalRoute('care-team'));
+
+  app.get('/api/patients/:patientId/encounters', patientClinicalRoute('encounters'));
 
   return app;
 }

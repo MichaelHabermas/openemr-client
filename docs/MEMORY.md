@@ -32,3 +32,7 @@ Keep entries concise. Prefer notes that will change future engineering behavior 
 ## Durable Test Lessons
 
 - **BFF route tests:** Prefer in-process Express route handler tests for E1-style BFF seams. The local sandbox may reject localhost socket binds, so tests that require binding random ports can fail for environment reasons even when route behavior is correct.
+
+## FHIR Mapping Notes
+
+- **E3 medications/prescriptions:** `MedicationStatement` support is unverified and must not be assumed without OpenEMR route/API proof. Initial medications and prescriptions proxy work should use `MedicationRequest` for both endpoints until fixture proof shows a better mapping.

@@ -11,9 +11,20 @@ type OAuthFake = {
 };
 
 type FhirFake = {
-  calls: string[];
+  calls: Array<{
+    operation: string;
+    accessToken: string;
+    resourceKey?: string;
+    patientId?: string;
+  }>;
   error?: unknown;
   fetchPatientBundle(accessToken: string): Promise<unknown>;
+  fetchPatient(accessToken: string, patientId: string): Promise<unknown>;
+  fetchPatientClinicalBundle(
+    accessToken: string,
+    resourceKey: string,
+    patientId: string,
+  ): Promise<unknown>;
 };
 
 type RouteLayer = {
@@ -54,6 +65,11 @@ const config: AppConfig = {
 };
 
 function createFakes() {
+  const patientPayload = {
+    resourceType: 'Patient',
+    id: 'patient-1',
+    name: [{ family: 'Nguyen', given: ['Alex'] }],
+  };
   const oauth: OAuthFake = {
     calls: [],
     async exchangeCodeForToken(code: string) {
@@ -65,12 +81,27 @@ function createFakes() {
   const fhir: FhirFake = {
     calls: [],
     async fetchPatientBundle(accessToken: string) {
-      fhir.calls.push(accessToken);
+      fhir.calls.push({ operation: 'fetchPatientBundle', accessToken });
       if (fhir.error) throw fhir.error;
       return {
         resourceType: 'Bundle',
         entry: [{ resource: { resourceType: 'Patient', id: 'patient-1' } }],
       };
+    },
+    async fetchPatient(accessToken: string, patientId: string) {
+      fhir.calls.push({ operation: 'fetchPatient', accessToken, patientId });
+      if (fhir.error) throw fhir.error;
+      return patientPayload;
+    },
+    async fetchPatientClinicalBundle(accessToken: string, resourceKey: string, patientId: string) {
+      fhir.calls.push({
+        operation: 'fetchPatientClinicalBundle',
+        accessToken,
+        resourceKey,
+        patientId,
+      });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Bundle', type: resourceKey, patientId };
     },
   };
   return { oauth, fhir };
@@ -110,9 +141,18 @@ async function callRoute(
   const response = createResponse();
   const handler = getRouteHandler(app, method, path);
 
-  await handler(request as express.Request, response as unknown as express.Response, () => {
-    throw new Error(`Unexpected next() call from ${method.toUpperCase()} ${path}`);
-  });
+  await handler(
+    {
+      params: {},
+      query: {},
+      cookies: {},
+      ...request,
+    } as express.Request,
+    response as unknown as express.Response,
+    () => {
+      throw new Error(`Unexpected next() call from ${method.toUpperCase()} ${path}`);
+    },
+  );
 
   return response;
 }
@@ -351,7 +391,88 @@ describe('createApp routes', () => {
       resourceType: 'Bundle',
       entry: [{ resource: { resourceType: 'Patient', id: 'patient-1' } }],
     });
-    expect(services.fhir.calls).toEqual(['fake-cookie-token']);
+    expect(services.fhir.calls).toEqual([
+      { operation: 'fetchPatientBundle', accessToken: 'fake-cookie-token' },
+    ]);
+  });
+
+  test.each([
+    ['/api/patients/:patientId', 'fetchPatient', undefined],
+    ['/api/patients/:patientId/allergies', 'fetchPatientClinicalBundle', 'allergies'],
+    ['/api/patients/:patientId/problems', 'fetchPatientClinicalBundle', 'problems'],
+    ['/api/patients/:patientId/medications', 'fetchPatientClinicalBundle', 'medications'],
+    ['/api/patients/:patientId/prescriptions', 'fetchPatientClinicalBundle', 'prescriptions'],
+    ['/api/patients/:patientId/care-team', 'fetchPatientClinicalBundle', 'care-team'],
+    ['/api/patients/:patientId/encounters', 'fetchPatientClinicalBundle', 'encounters'],
+  ] as const)('GET %s exists and requires auth', async (routePath) => {
+    const { app, services } = createTestApp();
+
+    const response = await callRoute(app, 'GET', routePath, {
+      params: { patientId: 'patient-1' },
+      cookies: {},
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.body).toEqual({ error: 'not_authenticated' });
+    expect(services.fhir.calls).toEqual([]);
+  });
+
+  test.each([
+    ['/api/patients/:patientId', 'fetchPatient', undefined],
+    ['/api/patients/:patientId/allergies', 'fetchPatientClinicalBundle', 'allergies'],
+    ['/api/patients/:patientId/problems', 'fetchPatientClinicalBundle', 'problems'],
+    ['/api/patients/:patientId/medications', 'fetchPatientClinicalBundle', 'medications'],
+    ['/api/patients/:patientId/prescriptions', 'fetchPatientClinicalBundle', 'prescriptions'],
+    ['/api/patients/:patientId/care-team', 'fetchPatientClinicalBundle', 'care-team'],
+    ['/api/patients/:patientId/encounters', 'fetchPatientClinicalBundle', 'encounters'],
+  ] as const)(
+    'GET %s calls %s with token and patient id',
+    async (routePath, operation, resourceKey) => {
+      const { app, services } = createTestApp();
+
+      const response = await callRoute(app, 'GET', routePath, {
+        params: { patientId: 'patient-1' },
+        cookies: { [accessTokenCookieName]: 'fake-cookie-token' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const expectedCall = { operation, accessToken: 'fake-cookie-token', patientId: 'patient-1' };
+      expect(services.fhir.calls).toEqual([
+        resourceKey === undefined ? expectedCall : { ...expectedCall, resourceKey },
+      ]);
+    },
+  );
+
+  test('GET /api/patients/:patientId returns the upstream patient payload', async () => {
+    const { app } = createTestApp();
+
+    const response = await callRoute(app, 'GET', '/api/patients/:patientId', {
+      params: { patientId: 'patient-1' },
+      cookies: { [accessTokenCookieName]: 'fake-cookie-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual({
+      resourceType: 'Patient',
+      id: 'patient-1',
+      name: [{ family: 'Nguyen', given: ['Alex'] }],
+    });
+  });
+
+  test('GET /api/patients/:patientId maps upstream 404 to not_found', async () => {
+    const { app, services } = createTestApp();
+    services.fhir.error = upstreamError(404);
+
+    const response = await callRoute(app, 'GET', '/api/patients/:patientId', {
+      params: { patientId: 'missing-patient' },
+      cookies: { [accessTokenCookieName]: 'fake-cookie-token' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+    expect(services.fhir.calls).toEqual([
+      { operation: 'fetchPatient', accessToken: 'fake-cookie-token', patientId: 'missing-patient' },
+    ]);
   });
 
   test.each([
@@ -361,18 +482,26 @@ describe('createApp routes', () => {
     [404, 404, 'not_found', false],
     [500, 502, 'fhir_unavailable', false],
   ] as const)(
-    'GET /api/patients maps upstream FHIR %i to controlled error',
+    'GET /api/patients/:patientId/allergies maps upstream FHIR %i to controlled error',
     async (upstreamStatus, responseStatus, error, clearsAccessToken) => {
       const { app, services } = createTestApp();
       services.fhir.error = upstreamError(upstreamStatus);
 
-      const response = await callRoute(app, 'GET', '/api/patients', {
+      const response = await callRoute(app, 'GET', '/api/patients/:patientId/allergies', {
+        params: { patientId: 'patient-1' },
         cookies: { [accessTokenCookieName]: 'fake-cookie-token' },
       });
 
       expect(response.statusCode).toBe(responseStatus);
       expect(response.body).toEqual({ error });
-      expect(services.fhir.calls).toEqual(['fake-cookie-token']);
+      expect(services.fhir.calls).toEqual([
+        {
+          operation: 'fetchPatientClinicalBundle',
+          accessToken: 'fake-cookie-token',
+          resourceKey: 'allergies',
+          patientId: 'patient-1',
+        },
+      ]);
       if (clearsAccessToken) {
         expect(response.cookies).toContainEqual({
           name: accessTokenCookieName,
@@ -385,11 +514,12 @@ describe('createApp routes', () => {
     },
   );
 
-  test('GET /api/patients maps network FHIR failures to fhir_unavailable', async () => {
+  test('GET /api/patients/:patientId/allergies maps network FHIR failures to fhir_unavailable', async () => {
     const { app, services } = createTestApp();
     services.fhir.error = new Error('connect ECONNREFUSED fake-token');
 
-    const response = await callRoute(app, 'GET', '/api/patients', {
+    const response = await callRoute(app, 'GET', '/api/patients/:patientId/allergies', {
+      params: { patientId: 'patient-1' },
       cookies: { [accessTokenCookieName]: 'fake-cookie-token' },
     });
 
