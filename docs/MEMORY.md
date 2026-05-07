@@ -26,8 +26,24 @@ Keep entries concise. Prefer notes that will change future engineering behavior 
 
 ## Global AgentForge Guardrails
 
-- **Secrets and automation boundary:**
-- 
+- **Secrets:** Do not read `.env` or other live environment files. Use `.env.example` and ask the human to verify local values.
+- **OAuth boundary:** Keep `client_secret`, token exchange, and token handling server-only. Browser code should call same-origin `/api/*` BFF routes with credentials.
+- **Logging:** Do not log access tokens, client secrets, or full raw patient payloads. Prefer sanitized operation/status/error-code logging.
+- **OpenEMR boundary:** Do not modify the sibling OpenEMR PHP app, backend behavior, database schema, or seeded fixture files unless the human explicitly changes the project scope.
+- **Source of truth:** OpenEMR remains the clinical system of record. This repo owns presentation, routing, BFF proxying, and UI-facing normalization only.
+
+## Product And Design Memory
+
+- **Spiritual fidelity:** Preserve OpenEMR's clinical information hierarchy and clinician muscle memory, but do not copy confusing PHP-era presentation patterns just because they exist.
+- **Clinical surface tone:** The dashboard should feel like a quiet clinical command center: dense, scannable, stable, accessible, and low-drama.
+- **Improve where safety improves:** Explicit empty/error/partial states, text status labels, deliberate patient selection, and clearer section hierarchy are intentional improvements, not departures.
+- **Easy transition:** Keep familiar section names and patient-dashboard flow unless there is a concrete safety, clarity, or maintainability reason to change them.
+
+## Proof Gaps
+
+- **Live OpenEMR QA:** Automated tests prove route contracts, normalization, and render behavior, but not live OpenEMR fixture richness, permissions, browser refresh, or responsive layout.
+- **Medication source split:** Medications and Prescriptions are separate UI models/cards, but both currently source from `MedicationRequest`; do not claim true source-level separation until live API proof exists.
+- **Responsive/browser proof:** Server-rendered component tests do not prove sticky positioning, viewport wrapping, focus behavior, or real browser layout. Use browser QA before calling those complete.
 
 ## Durable Test Lessons
 
