@@ -226,7 +226,9 @@ bun test
 
 ## E2: OAuth And Session Hardening
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: Replaced static OAuth state with per-login cryptographic state stored in a transient httpOnly cookie, validated callback state before token exchange, sanitized OAuth failure logging, updated default dashboard read-only scopes, and added reusable protected-route/FHIR error mapping groundwork for E3. Verified with `bun test` and `bun run typecheck`.
 
 ### Goal
 
@@ -246,7 +248,9 @@ Replace the current static OAuth `state=abc123` behavior with per-login state va
 
 #### E2.T1: Add OAuth state cookie constant and generation helper
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: Added `oauthStateCookieName` plus `server/auth/oauth-state.ts` for cryptographic state generation, timing-safe comparison, and explicit transient cookie options.
 
 Work:
 
@@ -269,7 +273,9 @@ bun test
 
 #### E2.T2: Update `GET /login` to store and send dynamic state
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: `/login` now generates fresh state on each request, stores it in the OAuth state cookie, and builds the authorize URL with encoded `URLSearchParams` and no client secret.
 
 Work:
 
@@ -292,7 +298,9 @@ bun test
 
 #### E2.T3: Validate OAuth state in `GET /callback`
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: `/callback` now clears the state cookie on every path, rejects missing/mismatched state before token exchange, redirects OAuth failures to `/?error=oauth`, and proceeds only when callback and cookie state match.
 
 Work:
 
@@ -316,7 +324,9 @@ bun test
 
 #### E2.T4: Update default OAuth scopes to dashboard read-only scopes
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: Default `OAUTH_SCOPE` now covers the read-only Patient, AllergyIntolerance, Condition, MedicationRequest, CareTeam, and Encounter resources needed by the dashboard; `.env.example` documents the optional override.
 
 Work:
 
@@ -344,7 +354,9 @@ bun test
 
 #### E2.T5: Sanitize OAuth failure behavior
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: OAuth callback failures now log only sanitized reason categories and never return raw exception details, authorization codes, tokens, client secrets, or upstream response bodies to the browser.
 
 Work:
 

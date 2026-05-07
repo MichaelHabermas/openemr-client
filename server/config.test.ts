@@ -75,12 +75,12 @@ describe('loadConfig', () => {
     expect(loadConfig().port).toBe(3000);
   });
 
-  test('uses the current default OAuth scope', () => {
+  test('uses the read-only dashboard OAuth scope by default', () => {
     clearEnv();
     setRequiredEnv();
 
     expect(loadConfig().oauthScope).toBe(
-      'openid api:fhir api:oemr user/Patient.read user/Patient.write',
+      'openid api:fhir api:oemr user/Patient.read user/AllergyIntolerance.read user/Condition.read user/MedicationRequest.read user/CareTeam.read user/Encounter.read',
     );
   });
 

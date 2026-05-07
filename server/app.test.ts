@@ -1,16 +1,18 @@
 import { describe, expect, test } from 'bun:test';
 import type express from 'express';
 import { createApp } from './app';
-import { accessTokenCookieName } from './constants';
+import { accessTokenCookieName, oauthStateCookieName } from './constants';
 import type { AppConfig } from './config';
 
 type OAuthFake = {
   calls: string[];
+  error?: unknown;
   exchangeCodeForToken(code: string): Promise<string>;
 };
 
 type FhirFake = {
   calls: string[];
+  error?: unknown;
   fetchPatientBundle(accessToken: string): Promise<unknown>;
 };
 
@@ -56,6 +58,7 @@ function createFakes() {
     calls: [],
     async exchangeCodeForToken(code: string) {
       oauth.calls.push(code);
+      if (oauth.error) throw oauth.error;
       return 'fake-access-token';
     },
   };
@@ -63,6 +66,7 @@ function createFakes() {
     calls: [],
     async fetchPatientBundle(accessToken: string) {
       fhir.calls.push(accessToken);
+      if (fhir.error) throw fhir.error;
       return {
         resourceType: 'Bundle',
         entry: [{ resource: { resourceType: 'Patient', id: 'patient-1' } }],
@@ -149,8 +153,24 @@ function createResponse(): MockResponse {
   };
 }
 
+function expectCookie(
+  response: MockResponse,
+  name: string,
+  predicate: (cookie: MockResponse['cookies'][number]) => void,
+) {
+  const cookie = response.cookies.find((candidate) => candidate.name === name);
+  expect(cookie).toBeTruthy();
+  predicate(cookie as MockResponse['cookies'][number]);
+}
+
+function upstreamError(status: number) {
+  return Object.assign(new Error(`Upstream ${status}`), {
+    response: { status },
+  });
+}
+
 describe('createApp routes', () => {
-  test('GET /login redirects with OAuth query params', async () => {
+  test('GET /login stores an OAuth state cookie matching the redirect state', async () => {
     const { app } = createTestApp();
 
     const response = await callRoute(app, 'GET', '/login');
@@ -166,17 +186,134 @@ describe('createApp routes', () => {
     expect(redirectUrl.searchParams.get('client_id')).toBe('client-id');
     expect(redirectUrl.searchParams.get('redirect_uri')).toBe('http://localhost:5173/callback');
     expect(redirectUrl.searchParams.get('scope')).toBe('openid api:fhir user/Patient.read');
-    expect(redirectUrl.searchParams.get('state')).toBe('abc123');
+    expect(redirectUrl.searchParams.has('client_secret')).toBe(false);
+    const state = redirectUrl.searchParams.get('state');
+    expect(state).toBeTruthy();
+    expect(state).not.toBe('abc123');
+    if (!state) throw new Error('Expected OAuth state in redirect URL');
+    expectCookie(response, oauthStateCookieName, (cookie) => {
+      expect(cookie.cleared).toBe(false);
+      expect(cookie.value).toBe(state);
+      expect(cookie.options).toMatchObject({
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+      });
+    });
   });
 
-  test('GET /callback without code returns 400 and does not call OAuth', async () => {
+  test('GET /login generates a fresh OAuth state per request', async () => {
+    const { app } = createTestApp();
+
+    const firstResponse = await callRoute(app, 'GET', '/login');
+    const secondResponse = await callRoute(app, 'GET', '/login');
+
+    const firstState = new URL(firstResponse.redirectUrl ?? '').searchParams.get('state');
+    const secondState = new URL(secondResponse.redirectUrl ?? '').searchParams.get('state');
+    expect(firstState).toBeTruthy();
+    expect(secondState).toBeTruthy();
+    expect(firstState).not.toBe(secondState);
+  });
+
+  test('GET /callback without code redirects to the OAuth error path and does not call OAuth', async () => {
     const { app, services } = createTestApp();
 
-    const response = await callRoute(app, 'GET', '/callback', { query: {} });
+    const response = await callRoute(app, 'GET', '/callback', {
+      query: { state: 'state-1' },
+      cookies: { [oauthStateCookieName]: 'state-1' },
+    });
 
-    expect(response.statusCode).toBe(400);
-    expect(response.body).toBe('No authorization code received');
+    expect(response.statusCode).toBe(302);
+    expect(response.redirectUrl).toBe('http://localhost:5173/?error=oauth');
+    expect(response.cookies).toContainEqual({
+      name: oauthStateCookieName,
+      options: { path: '/' },
+      cleared: true,
+    });
     expect(services.oauth.calls).toEqual([]);
+  });
+
+  test('GET /callback without a state fails before token exchange and clears state', async () => {
+    const { app, services } = createTestApp();
+
+    const response = await callRoute(app, 'GET', '/callback', {
+      query: { code: 'auth-code' },
+      cookies: { [oauthStateCookieName]: 'state-1' },
+    });
+
+    expect(response.statusCode).toBe(302);
+    expect(response.redirectUrl).toBe('http://localhost:5173/?error=oauth');
+    expect(response.cookies).toContainEqual({
+      name: oauthStateCookieName,
+      options: { path: '/' },
+      cleared: true,
+    });
+    expect(services.oauth.calls).toEqual([]);
+  });
+
+  test('GET /callback with mismatched state fails before token exchange and clears state', async () => {
+    const { app, services } = createTestApp();
+
+    const response = await callRoute(app, 'GET', '/callback', {
+      query: { code: 'auth-code', state: 'callback-state' },
+      cookies: { [oauthStateCookieName]: 'cookie-state' },
+    });
+
+    expect(response.statusCode).toBe(302);
+    expect(response.redirectUrl).toBe('http://localhost:5173/?error=oauth');
+    expect(response.cookies).toContainEqual({
+      name: oauthStateCookieName,
+      options: { path: '/' },
+      cleared: true,
+    });
+    expect(services.oauth.calls).toEqual([]);
+  });
+
+  test('GET /callback with matching state exchanges the code, clears state, and sets access token', async () => {
+    const { app, services } = createTestApp();
+
+    const response = await callRoute(app, 'GET', '/callback', {
+      query: { code: 'auth-code', state: 'state-1' },
+      cookies: { [oauthStateCookieName]: 'state-1' },
+    });
+
+    expect(response.statusCode).toBe(302);
+    expect(response.redirectUrl).toBe('http://localhost:5173/patients');
+    expect(response.cookies).toContainEqual({
+      name: oauthStateCookieName,
+      options: { path: '/' },
+      cleared: true,
+    });
+    expectCookie(response, accessTokenCookieName, (cookie) => {
+      expect(cookie.cleared).toBe(false);
+      expect(cookie.value).toBe('fake-access-token');
+      expect(cookie.options).toMatchObject({
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+      });
+    });
+    expect(services.oauth.calls).toEqual(['auth-code']);
+  });
+
+  test('GET /callback redirects to the OAuth error path when token exchange fails', async () => {
+    const { app, services } = createTestApp();
+    services.oauth.error = new Error('Token response missing access_token');
+
+    const response = await callRoute(app, 'GET', '/callback', {
+      query: { code: 'auth-code', state: 'state-1' },
+      cookies: { [oauthStateCookieName]: 'state-1' },
+    });
+
+    expect(response.statusCode).toBe(302);
+    expect(response.redirectUrl).toBe('http://localhost:5173/?error=oauth');
+    expect(response.cookies).toContainEqual({
+      name: oauthStateCookieName,
+      options: { path: '/' },
+      cleared: true,
+    });
+    expect(response.cookies.some((cookie) => cookie.name === accessTokenCookieName)).toBe(false);
+    expect(services.oauth.calls).toEqual(['auth-code']);
   });
 
   test('POST /api/logout returns 204 and clears the access token cookie', async () => {
@@ -192,13 +329,13 @@ describe('createApp routes', () => {
     });
   });
 
-  test('GET /api/patients without a cookie returns 401 and does not call FHIR', async () => {
+  test('GET /api/patients without a cookie returns canonical not_authenticated and does not call FHIR', async () => {
     const { app, services } = createTestApp();
 
     const response = await callRoute(app, 'GET', '/api/patients', { cookies: {} });
 
     expect(response.statusCode).toBe(401);
-    expect(response.body).toEqual({ error: 'Not authenticated' });
+    expect(response.body).toEqual({ error: 'not_authenticated' });
     expect(services.fhir.calls).toEqual([]);
   });
 
@@ -215,5 +352,49 @@ describe('createApp routes', () => {
       entry: [{ resource: { resourceType: 'Patient', id: 'patient-1' } }],
     });
     expect(services.fhir.calls).toEqual(['fake-cookie-token']);
+  });
+
+  test.each([
+    [400, 400, 'bad_fhir_request', false],
+    [401, 401, 'upstream_auth_failed', true],
+    [403, 403, 'forbidden', false],
+    [404, 404, 'not_found', false],
+    [500, 502, 'fhir_unavailable', false],
+  ] as const)(
+    'GET /api/patients maps upstream FHIR %i to controlled error',
+    async (upstreamStatus, responseStatus, error, clearsAccessToken) => {
+      const { app, services } = createTestApp();
+      services.fhir.error = upstreamError(upstreamStatus);
+
+      const response = await callRoute(app, 'GET', '/api/patients', {
+        cookies: { [accessTokenCookieName]: 'fake-cookie-token' },
+      });
+
+      expect(response.statusCode).toBe(responseStatus);
+      expect(response.body).toEqual({ error });
+      expect(services.fhir.calls).toEqual(['fake-cookie-token']);
+      if (clearsAccessToken) {
+        expect(response.cookies).toContainEqual({
+          name: accessTokenCookieName,
+          options: { path: '/' },
+          cleared: true,
+        });
+      } else {
+        expect(response.cookies).toEqual([]);
+      }
+    },
+  );
+
+  test('GET /api/patients maps network FHIR failures to fhir_unavailable', async () => {
+    const { app, services } = createTestApp();
+    services.fhir.error = new Error('connect ECONNREFUSED fake-token');
+
+    const response = await callRoute(app, 'GET', '/api/patients', {
+      cookies: { [accessTokenCookieName]: 'fake-cookie-token' },
+    });
+
+    expect(response.statusCode).toBe(502);
+    expect(response.body).toEqual({ error: 'fhir_unavailable' });
+    expect(response.cookies).toEqual([]);
   });
 });

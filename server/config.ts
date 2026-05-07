@@ -15,7 +15,8 @@ export function loadConfig() {
     port: Number(process.env.PORT ?? '3000'),
     appOrigin: required('APP_ORIGIN').replace(/\/$/, ''),
     oauthScope:
-      process.env.OAUTH_SCOPE ?? 'openid api:fhir api:oemr user/Patient.read user/Patient.write',
+      process.env.OAUTH_SCOPE ??
+      'openid api:fhir api:oemr user/Patient.read user/AllergyIntolerance.read user/Condition.read user/MedicationRequest.read user/CareTeam.read user/Encounter.read',
   };
 }
 

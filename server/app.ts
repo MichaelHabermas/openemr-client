@@ -1,8 +1,20 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
+import {
+  createOAuthStateCookie,
+  clearOAuthStateCookie,
+  isValidOAuthState,
+  readOAuthStateCookie,
+} from './auth/oauth-state';
+import {
+  clearAccessTokenCookie,
+  readAccessTokenCookie,
+  setAccessTokenCookie,
+} from './auth/session';
 import type { AppConfig } from './config';
-import { accessTokenCookieName } from './constants';
+import { apiErrorCodes } from './errors/api-errors';
+import { mapFhirError } from './errors/fhir-error-mapper';
 import type { FhirService } from './services/fhir-service';
 import type { OAuthService } from './services/oauth-service';
 
@@ -38,56 +50,65 @@ export function createApp({ config, services }: CreateAppOptions) {
   app.use(express.json());
 
   app.get('/login', (_req, res) => {
-    const authUrl =
-      `${config.openemrUrl}/oauth2/default/authorize?` +
-      `response_type=code&` +
-      `client_id=${encodeURIComponent(config.oauthClientId)}&` +
-      `redirect_uri=${encodeURIComponent(config.redirectUri)}&` +
-      `scope=${encodeURIComponent(config.oauthScope)}&` +
-      `state=abc123`;
-    res.redirect(authUrl);
+    const state = createOAuthStateCookie(res);
+    const authUrl = new URL('/oauth2/default/authorize', config.openemrUrl);
+    authUrl.search = new URLSearchParams({
+      response_type: 'code',
+      client_id: config.oauthClientId,
+      redirect_uri: config.redirectUri,
+      scope: config.oauthScope,
+      state,
+    }).toString();
+    res.redirect(authUrl.toString());
   });
 
   app.get('/callback', async (req, res) => {
     const code = firstQueryString(req.query.code);
+    const callbackState = firstQueryString(req.query.state);
+    const cookieState = readOAuthStateCookie(req);
+    clearOAuthStateCookie(res);
+
     if (!code) {
-      res.status(400).send('No authorization code received');
+      console.error('OAuth callback failed', { reason: 'missing_code' });
+      res.redirect(`${config.appOrigin}/?error=oauth`);
+      return;
+    }
+    if (!isValidOAuthState(callbackState, cookieState)) {
+      console.error('OAuth callback failed', { reason: 'state_mismatch' });
+      res.redirect(`${config.appOrigin}/?error=oauth`);
       return;
     }
     try {
       const token = await services.oauth.exchangeCodeForToken(code);
-      res.cookie(accessTokenCookieName, token, {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      });
+      setAccessTokenCookie(res, token);
       res.redirect(`${config.appOrigin}/patients`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error('OAuth callback error:', message);
+    } catch {
+      console.error('OAuth callback failed', { reason: 'token_exchange_failed' });
       res.redirect(`${config.appOrigin}/?error=oauth`);
     }
   });
 
   app.post('/api/logout', (_req, res) => {
-    res.clearCookie(accessTokenCookieName, { path: '/' });
+    clearAccessTokenCookie(res);
     res.status(204).end();
   });
 
   app.get('/api/patients', async (req, res) => {
-    const token = req.cookies?.[accessTokenCookieName];
-    if (!token || typeof token !== 'string') {
-      res.status(401).json({ error: 'Not authenticated' });
+    const token = readAccessTokenCookie(req);
+    if (!token) {
+      res.status(401).json({ error: apiErrorCodes.notAuthenticated });
       return;
     }
     try {
       const bundle = await services.fhir.fetchPatientBundle(token);
       res.json(bundle);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error('FHIR error:', message);
-      res.status(500).json({ error: message });
+      const mapped = mapFhirError(error);
+      if (mapped.body.error === apiErrorCodes.upstreamAuthFailed) {
+        clearAccessTokenCookie(res);
+      }
+      console.error('FHIR proxy failed', { status: mapped.status, error: mapped.body.error });
+      res.status(mapped.status).json(mapped.body);
     }
   });
 
