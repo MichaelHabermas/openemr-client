@@ -80,7 +80,7 @@ flowchart LR
 
 | Epic | Status | Purpose |
 | --- | --- | --- |
-| E1: Testable BFF Foundation | `[ ]` | Split server wiring from listener startup and establish test seams. |
+| E1: Testable BFF Foundation | `[x]` | Split server wiring from listener startup and establish test seams. |
 | E2: OAuth And Session Hardening | `[ ]` | Replace static OAuth state and tighten auth/session behavior. |
 | E3: FHIR Clinical Proxy Layer | `[ ]` | Add patient-scoped proxy endpoints for required dashboard resources. |
 | E4: Patient Feature Module | `[ ]` | Deepen `src/features/patients` with API, types, normalizers, hooks, and components. |
@@ -93,7 +93,9 @@ flowchart LR
 
 ## E1: Testable BFF Foundation
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-06: Added `server/app.ts` as a pure Express app factory with injected OAuth/FHIR services, kept `server/index.ts` as runtime bootstrap and static `dist` serving only, and added Bun route/config tests. Verified with `bun run typecheck` and `bun test`.
 
 ### Goal
 
@@ -112,7 +114,9 @@ Make the Express BFF testable and easier to extend before adding OAuth hardening
 
 #### E1.T1: Split Express app creation from listener startup
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-06: `createApp({ config, services })` can be imported and tested without starting a listener. `server/index.ts` still loads config, creates real services, attaches `dist` serving when present, and calls `listen`.
 
 Work:
 
@@ -136,7 +140,9 @@ bun test
 
 #### E1.T2: Define server service interfaces for dependency injection
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-06: Route code now depends on injected `OAuthService` and `FhirService` interfaces. Runtime wiring still uses `createOAuthService(config)` and `createFhirService(config)`.
 
 Work:
 
@@ -158,7 +164,9 @@ bun run typecheck
 
 #### E1.T3: Add baseline BFF route tests
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-06: Added Bun tests for login redirect parameters, callback missing `code`, logout cookie clearing, unauthenticated patient access, and authenticated patient bundle proxy behavior with fake services.
 
 Work:
 
@@ -181,7 +189,9 @@ bun test
 
 #### E1.T4: Add config tests without reading live `.env`
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-06: Added config tests that isolate `process.env` without reading `.env`, covering required env validation, URL slash trimming, default `PORT`, current default OAuth scope, and explicit OAuth scope.
 
 Work:
 

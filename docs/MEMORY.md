@@ -28,3 +28,7 @@ Keep entries concise. Prefer notes that will change future engineering behavior 
 
 - **Secrets and automation boundary:**
 - 
+
+## Durable Test Lessons
+
+- **BFF route tests:** Prefer in-process Express route handler tests for E1-style BFF seams. The local sandbox may reject localhost socket binds, so tests that require binding random ports can fail for environment reasons even when route behavior is correct.
