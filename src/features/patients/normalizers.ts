@@ -30,7 +30,9 @@ function stringValue(value: unknown): string | undefined {
 }
 
 function stringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
 }
 
 function hasMeaningfulValue(value: string): boolean {
@@ -66,6 +68,10 @@ export function displayCodeableConcept(value: unknown, fallback = UNKNOWN): stri
   if (!isRecord(value)) return fallback;
   const text = stringValue(value.text);
   if (text) return text;
+  const directDisplay = stringValue(value.display);
+  if (directDisplay) return directDisplay;
+  const directCode = stringValue(value.code);
+  if (directCode) return directCode;
 
   if (Array.isArray(value.coding)) {
     for (const coding of value.coding) {
@@ -88,11 +94,18 @@ export function displayReference(value: unknown, fallback = NOT_RECORDED): strin
 function displayDate(value: unknown, fallback = NOT_RECORDED): string {
   const raw = stringValue(value);
   if (!raw) return fallback;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split('-');
+    const monthNumber = Number(month);
+    const dayNumber = Number(day);
+    if (monthNumber >= 1 && monthNumber <= 12 && dayNumber >= 1 && dayNumber <= 31) {
+      return `${monthNumber}/${dayNumber}/${year}`;
+    }
+    return raw;
+  }
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return raw;
-  return raw.length <= 10
-    ? date.toLocaleDateString()
-    : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 function normalizeStatus(value: unknown, fallback = UNKNOWN): string {
@@ -123,7 +136,11 @@ function selectMrn(patient: FhirPatient): string {
     );
   });
 
-  return explicitMrn?.value ?? identifiers.find((identifier) => stringValue(identifier.value))?.value ?? 'No MRN';
+  return (
+    explicitMrn?.value ??
+    identifiers.find((identifier) => stringValue(identifier.value))?.value ??
+    'No MRN'
+  );
 }
 
 function formatPatientSex(gender: unknown): string {
@@ -132,7 +149,11 @@ function formatPatientSex(gender: unknown): string {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
-function activeStatus(patient: FhirPatient): { label: string; description: string; isActive: boolean | null } {
+function activeStatus(patient: FhirPatient): {
+  label: string;
+  description: string;
+  isActive: boolean | null;
+} {
   if (patient.active === true) {
     return { label: 'Active', description: 'Active patient record', isActive: true };
   }
@@ -140,6 +161,38 @@ function activeStatus(patient: FhirPatient): { label: string; description: strin
     return { label: 'Inactive', description: 'Inactive patient record', isActive: false };
   }
   return { label: UNKNOWN, description: 'Active status not recorded', isActive: null };
+}
+
+function patientSearchTerms(
+  patient: FhirPatient,
+  summary: Omit<PatientSummary, 'searchText'>,
+): string[] {
+  const names = Array.isArray(patient.name) ? patient.name : [];
+  const identifiers = Array.isArray(patient.identifier) ? patient.identifier : [];
+  const nameTerms = names.flatMap((name) => [
+    stringValue(name.text),
+    stringValue(name.family),
+    ...stringArray(name.given),
+  ]);
+  const identifierTerms = identifiers.flatMap((identifier) => [
+    stringValue(identifier.value),
+    stringValue(identifier.system),
+    displayCodeableConcept(identifier.type, ''),
+  ]);
+
+  return [
+    patient.id,
+    patient.birthDate,
+    patient.gender,
+    summary.id,
+    summary.displayName,
+    summary.birthDateLabel,
+    summary.sexLabel,
+    summary.mrnLabel,
+    summary.activeStatusLabel,
+    ...nameTerms,
+    ...identifierTerms,
+  ].filter((term): term is string => typeof term === 'string' && term.trim().length > 0);
 }
 
 export function normalizePatientSummary(value: unknown): PatientSummary | null {
@@ -157,7 +210,7 @@ export function normalizePatientSummary(value: unknown): PatientSummary | null {
   };
   return {
     ...summary,
-    searchText: Array.from(new Set(Object.values(summary).filter((item) => typeof item === 'string')))
+    searchText: Array.from(new Set(patientSearchTerms(value, summary)))
       .join(' ')
       .toLowerCase(),
   };
@@ -218,9 +271,13 @@ export function normalizeAllergy(value: unknown): AllergyRow | null {
 export function normalizeProblem(value: unknown): ProblemRow | null {
   if (!isResourceType<FhirCondition>(value, 'Condition')) return null;
   const category = Array.isArray(value.category)
-    ? value.category.map((item) => displayCodeableConcept(item, '')).filter(Boolean).join(', ')
+    ? value.category
+        .map((item) => displayCodeableConcept(item, ''))
+        .filter(Boolean)
+        .join(', ')
     : '';
   const clinicalStatus = normalizeStatus(value.clinicalStatus);
+  const normalizedClinicalStatus = clinicalStatus.toLowerCase();
   const row = {
     id: resourceId(value, 'problem'),
     name: displayCodeableConcept(value.code),
@@ -228,7 +285,10 @@ export function normalizeProblem(value: unknown): ProblemRow | null {
     verificationStatus: normalizeStatus(value.verificationStatus),
     dateLabel: displayDate(value.onsetDateTime ?? value.recordedDate),
     category: category || NOT_RECORDED,
-    isActive: !clinicalStatus.toLowerCase().includes('inactive') && !clinicalStatus.toLowerCase().includes('resolved'),
+    isActive:
+      hasMeaningfulValue(clinicalStatus) &&
+      !normalizedClinicalStatus.includes('inactive') &&
+      !normalizedClinicalStatus.includes('resolved'),
   };
   return {
     ...row,
@@ -300,7 +360,10 @@ export function normalizeCareTeam(value: unknown): CareTeamRow[] {
 
   return participants.map((participant, index) => {
     const role = Array.isArray(participant.role)
-      ? participant.role.map((item) => displayCodeableConcept(item, '')).filter(Boolean).join(', ')
+      ? participant.role
+          .map((item) => displayCodeableConcept(item, ''))
+          .filter(Boolean)
+          .join(', ')
       : '';
     const member = participant.member as FhirReference | undefined;
     const name = displayReference(member);
@@ -318,20 +381,30 @@ export function normalizeCareTeam(value: unknown): CareTeamRow[] {
 export function normalizeEncounter(value: unknown): EncounterRow | null {
   if (!isResourceType<FhirEncounter>(value, 'Encounter')) return null;
   const type = Array.isArray(value.type)
-    ? value.type.map((item) => displayCodeableConcept(item, '')).filter(Boolean).join(', ')
+    ? value.type
+        .map((item) => displayCodeableConcept(item, ''))
+        .filter(Boolean)
+        .join(', ')
     : '';
   const location = Array.isArray(value.location)
-    ? value.location.map((item) => displayReference(item.location, '')).filter(Boolean).join(', ')
+    ? value.location
+        .map((item) => displayReference(item.location, ''))
+        .filter(Boolean)
+        .join(', ')
     : '';
   const participant = Array.isArray(value.participant)
-    ? value.participant.map((item) => displayReference(item.individual, '')).filter(Boolean).join(', ')
+    ? value.participant
+        .map((item) => displayReference(item.individual, ''))
+        .filter(Boolean)
+        .join(', ')
     : '';
   const startRaw = stringValue(value.period?.start);
   const sortTime = startRaw ? new Date(startRaw).getTime() : 0;
 
   const row = {
     id: resourceId(value, 'encounter'),
-    type: type || displayCodeableConcept(value.class, UNKNOWN),
+    type: type || UNKNOWN,
+    classLabel: displayCodeableConcept(value.class),
     status: normalizeStatus(value.status),
     start: displayDate(value.period?.start),
     end: displayDate(value.period?.end),

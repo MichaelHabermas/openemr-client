@@ -82,11 +82,11 @@ describe('patient feature API', () => {
   test('non-json errors do not leak raw response text', async () => {
     installFetchMock(
       mock(
-      () =>
-        new Response('upstream stack trace with patient payload', {
-          status: 502,
-          headers: { 'content-type': 'text/plain' },
-        }),
+        () =>
+          new Response('upstream stack trace with patient payload', {
+            status: 502,
+            headers: { 'content-type': 'text/plain' },
+          }),
       ),
     );
 

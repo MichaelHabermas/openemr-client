@@ -81,6 +81,7 @@ export interface CareTeamRow {
 export interface EncounterRow {
   id: string;
   type: string;
+  classLabel: string;
   status: string;
   start: string;
   end: string;
@@ -88,21 +89,4 @@ export interface EncounterRow {
   participant: string;
   sortTime: number;
   hasPartialData: boolean;
-}
-
-export type ClinicalResourceKind =
-  | 'allergies'
-  | 'problems'
-  | 'medications'
-  | 'prescriptions'
-  | 'careTeam'
-  | 'encounters';
-
-export interface PatientDashboardSections {
-  allergies: LoadState<AllergyRow[]>;
-  problems: LoadState<ProblemRow[]>;
-  medications: LoadState<MedicationRow[]>;
-  prescriptions: LoadState<PrescriptionRow[]>;
-  careTeam: LoadState<CareTeamRow[]>;
-  encounters: LoadState<EncounterRow[]>;
 }

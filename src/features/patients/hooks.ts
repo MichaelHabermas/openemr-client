@@ -20,7 +20,6 @@ import {
 import type {
   AllergyRow,
   CareTeamRow,
-  ClinicalResourceKind,
   EncounterRow,
   LoadState,
   MedicationRow,
@@ -103,37 +102,64 @@ type ClinicalRowsByKind = {
   encounters: EncounterRow[];
 };
 
-const clinicalLoaders = {
-  allergies: fetchPatientAllergies,
-  problems: fetchPatientProblems,
-  medications: fetchPatientMedications,
-  prescriptions: fetchPatientPrescriptions,
-  careTeam: fetchPatientCareTeam,
-  encounters: fetchPatientEncounters,
-} as const;
-
-export function usePatientClinicalResource<TKind extends ClinicalResourceKind>(
-  patientId: string,
-  kind: TKind,
-): LoadState<ClinicalRowsByKind[TKind]> {
+function usePatientAllergies(patientId: string): LoadState<ClinicalRowsByKind['allergies']> {
   return useAsyncPatientState(
-    async () =>
-      normalizeClinicalBundle[kind](
-        await clinicalLoaders[kind](patientId),
-      ) as ClinicalRowsByKind[TKind],
+    async () => normalizeClinicalBundle.allergies(await fetchPatientAllergies(patientId)),
     (rows) => rows.length === 0,
-    [patientId, kind],
+    [patientId],
+  );
+}
+
+function usePatientProblems(patientId: string): LoadState<ClinicalRowsByKind['problems']> {
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.problems(await fetchPatientProblems(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+  );
+}
+
+function usePatientMedications(patientId: string): LoadState<ClinicalRowsByKind['medications']> {
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.medications(await fetchPatientMedications(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+  );
+}
+
+function usePatientPrescriptions(
+  patientId: string,
+): LoadState<ClinicalRowsByKind['prescriptions']> {
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.prescriptions(await fetchPatientPrescriptions(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+  );
+}
+
+function usePatientCareTeam(patientId: string): LoadState<ClinicalRowsByKind['careTeam']> {
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.careTeam(await fetchPatientCareTeam(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+  );
+}
+
+function usePatientEncounters(patientId: string): LoadState<ClinicalRowsByKind['encounters']> {
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.encounters(await fetchPatientEncounters(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
   );
 }
 
 export function usePatientDashboard(patientId: string) {
   return {
     patient: usePatient(patientId),
-    allergies: usePatientClinicalResource(patientId, 'allergies'),
-    problems: usePatientClinicalResource(patientId, 'problems'),
-    medications: usePatientClinicalResource(patientId, 'medications'),
-    prescriptions: usePatientClinicalResource(patientId, 'prescriptions'),
-    careTeam: usePatientClinicalResource(patientId, 'careTeam'),
-    encounters: usePatientClinicalResource(patientId, 'encounters'),
+    allergies: usePatientAllergies(patientId),
+    problems: usePatientProblems(patientId),
+    medications: usePatientMedications(patientId),
+    prescriptions: usePatientPrescriptions(patientId),
+    careTeam: usePatientCareTeam(patientId),
+    encounters: usePatientEncounters(patientId),
   };
 }

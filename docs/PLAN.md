@@ -81,15 +81,15 @@ flowchart LR
 | Epic | Status | Purpose |
 | --- | --- | --- |
 | E1: Testable BFF Foundation | `[x]` | Split server wiring from listener startup and establish test seams. |
-| E2: OAuth And Session Hardening | `[ ]` | Replace static OAuth state and tighten auth/session behavior. |
+| E2: OAuth And Session Hardening | `[x]` | Replace static OAuth state and tighten auth/session behavior. |
 | E3: FHIR Clinical Proxy Layer | `[x]` | Add patient-scoped proxy endpoints for required dashboard resources. |
-| E4: Patient Feature Module | `[ ]` | Deepen `src/features/patients` with API, types, normalizers, hooks, and components. |
-| E5: Patient Search And Selection | `[ ]` | Upgrade `/patients` into the deliberate patient picker. |
-| E6: Dashboard Shell And Patient Header | `[ ]` | Add `/patients/:patientId` and persistent patient identity header. |
-| E7: Required Clinical Cards | `[ ]` | Render Allergies, Problem List, Medications, Prescriptions, and Care Team. |
-| E8: Encounter History | `[ ]` | Render additional API-backed Encounter History section. |
-| E9: Migration Defense Documentation | `[ ]` | Add `PATIENT_DASHBOARD_MIGRATION.md`. |
-| E10: Final QA And Acceptance | `[ ]` | Verify full challenge/PRD completion. |
+| E4: Patient Feature Module | `[x]` | Deepen `src/features/patients` with API, types, normalizers, hooks, and components. |
+| E5: Patient Search And Selection | `[x]` | Upgrade `/patients` into the deliberate patient picker. |
+| E6: Dashboard Shell And Patient Header | `[x]` | Add `/patients/:patientId` and persistent patient identity header. |
+| E7: Required Clinical Cards | `[x]` | Render Allergies, Problem List, Medications, Prescriptions, and Care Team. |
+| E8: Encounter History | `[x]` | Render additional API-backed Encounter History section. |
+| E9: Migration Defense Documentation | `[x]` | Add `PATIENT_DASHBOARD_MIGRATION.md`. |
+| E10: Final QA And Acceptance | `[x]` | Verify full challenge/PRD completion. |
 
 ## E1: Testable BFF Foundation
 
@@ -588,7 +588,7 @@ bun run typecheck
 
 Status: `[x]`
 
-Completion note, 2026-05-07: Deepened `src/features/patients` into the frontend patient boundary. Added patient-specific API methods for all E3 BFF endpoints, partial dashboard-focused FHIR types, UI-facing patient/header/clinical row models, runtime-safe normalizers, independent async hooks, and a `/patients` route refactor that consumes normalized `PatientSummary` values instead of parsing raw FHIR. Verified with `bun test`, `bun run typecheck`, `bun run lint`, and `bun run build`.
+Completion note, 2026-05-07: Deepened `src/features/patients` into the frontend patient boundary. Added patient-specific API methods for all E3 BFF endpoints, partial dashboard-focused FHIR types, UI-facing patient/header/clinical row models, runtime-safe normalizers, independent async hooks, patient picker components, dashboard shell/header components, clinical cards, and render tests. Verified with `bun test`, `bun run typecheck`, `bun run lint`, `bun run format:check`, and `bun run build`.
 
 Purpose:
 
@@ -610,9 +610,9 @@ Definition of Done:
 
 ## E5: Patient Search And Selection
 
-Status: `[ ]`
+Status: `[x]`
 
-Stub for later expansion.
+Completion note, 2026-05-07: Replaced the inline `/patients` list with a patient picker component, added accessible search input and result count, route-based patient row links to `/patients/:patientId`, richer patient `searchText`, and pure `filterPatients` coverage. Verified with `bun test`, `bun run typecheck`, `bun run lint`, `bun run format:check`, and `bun run build`.
 
 Purpose:
 
@@ -628,15 +628,15 @@ Expected outputs:
 
 Definition of Done:
 
-- No auto-selection of first patient.
-- Empty search does not log the user out.
-- Similar patients can be distinguished by identity metadata.
+- `[x]` No auto-selection of first patient.
+- `[x]` Empty search does not log the user out.
+- `[x]` Similar patients can be distinguished by identity metadata.
 
 ## E6: Dashboard Shell And Patient Header
 
-Status: `[ ]`
+Status: `[x]`
 
-Stub for later expansion.
+Completion note, 2026-05-07: Added `/patients/:patientId`, a thin dashboard route, `PatientDashboardShell`, and `PatientHeader` with loading, empty, not-found, auth, and general error handling. Header renders normalized patient identity fields with text status labels and server-rendered component tests. Verified with `bun test`, `bun run typecheck`, `bun run lint`, `bun run format:check`, and `bun run build`.
 
 Purpose:
 
@@ -651,15 +651,15 @@ Expected outputs:
 
 Definition of Done:
 
-- Dashboard route fetches patient identity through the BFF.
-- Header remains visible above clinical content.
-- Header does not rely on color alone for active/inactive status.
+- `[x]` Dashboard route fetches patient identity through the BFF.
+- `[x]` Header remains visible above clinical content.
+- `[x]` Header does not rely on color alone for active/inactive status.
 
 ## E7: Required Clinical Cards
 
-Status: `[ ]`
+Status: `[x]`
 
-Stub for later expansion.
+Completion note, 2026-05-07: Added shared `ClinicalCard`, `ClinicalField`, and `StatusLabel` primitives plus section-specific Allergies, Problem List, Medications, Prescriptions, and Care Team cards. Cards consume independent `LoadState<Row[]>` values from `usePatientDashboard`, render loading/empty/partial/error states, and keep Medications and Prescriptions visually distinct while both map from `MedicationRequest`. Verified with `bun test`, `bun run typecheck`, `bun run lint`, `bun run format:check`, and `bun run build`.
 
 Purpose:
 
@@ -675,16 +675,16 @@ Cards:
 
 Definition of Done:
 
-- Each card loads independently.
-- Each card has loading, empty, partial-data, and error states.
-- One failed card does not blank the dashboard.
-- Medications and Prescriptions are visually and semantically distinct.
+- `[x]` Each card loads independently.
+- `[x]` Each card has loading, empty, partial-data, and error states.
+- `[x]` One failed card does not blank the dashboard.
+- `[x]` Medications and Prescriptions are visually and semantically distinct.
 
 ## E8: Encounter History
 
-Status: `[ ]`
+Status: `[x]`
 
-Stub for later expansion.
+Completion note, 2026-05-07: Added Encounter History to the dashboard shell using the existing encounters hook and normalized `EncounterRow` model. The section uses the same independent clinical-card state handling and preserves reverse chronological sorting from the normalizer. Verified with `bun test`, `bun run typecheck`, `bun run lint`, `bun run format:check`, and `bun run build`.
 
 Purpose:
 
@@ -692,16 +692,16 @@ Purpose:
 
 Definition of Done:
 
-- Encounters are fetched through the BFF.
-- Encounters sort reverse chronologically when dates exist.
-- Rows show type/class, status, start/end, location, and participant/provider when available.
-- Loading, empty, partial-data, and error states are present.
+- `[x]` Encounters are fetched through the BFF.
+- `[x]` Encounters sort reverse chronologically when dates exist.
+- `[x]` Rows show type/class, status, start/end, location, and participant/provider when available.
+- `[x]` Loading, empty, partial-data, and error states are present.
 
 ## E9: Migration Defense Documentation
 
-Status: `[ ]`
+Status: `[x]`
 
-Stub for later expansion.
+Completion note, 2026-05-07: Added root `PATIENT_DASHBOARD_MIGRATION.md` documenting the Vite + React + TypeScript choice, benefits of moving presentation out of PHP, tradeoffs, OpenEMR system-of-record boundary, no OpenEMR backend/database/PHP modification, data mapping table, medication/prescription `MedicationRequest` caveat, and known limitations.
 
 Purpose:
 
@@ -719,9 +719,9 @@ Required contents:
 
 ## E10: Final QA And Acceptance
 
-Status: `[ ]`
+Status: `[x]`
 
-Stub for later expansion.
+Completion note, 2026-05-07: Ran the required automated verification gates after the correctness audit fixes: `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun test`, and `bun run build` all pass. Live OpenEMR/manual browser QA remains listed separately in `docs/PRD.md` because it requires a configured OpenEMR instance.
 
 Purpose:
 
@@ -753,19 +753,19 @@ Manual QA:
 
 | Requirement | Source | Implementation Area | Status | Verification |
 | --- | --- | --- | --- | --- |
-| OAuth login via OpenEMR | Challenge / PRD | E2 | `[ ]` | Route tests + manual login |
-| Server-only token exchange | Challenge / PRD | E2 | `[ ]` | Route tests + bundle/log review |
-| Patient search and selection | PRD | E5 | `[ ]` | UI tests/manual QA |
-| Stable dashboard route | PRD | E6 | `[ ]` | Route/UI tests |
-| Patient identity header | Challenge / PRD | E6 | `[ ]` | Normalizer tests + manual QA |
-| Allergies card | Challenge / PRD | E3, E7 | `[ ]` | BFF tests + UI/manual QA |
-| Problem List card | Challenge / PRD | E3, E7 | `[ ]` | BFF tests + UI/manual QA |
-| Medications card | Challenge / PRD | E3, E7 | `[ ]` | BFF tests + UI/manual QA |
-| Prescriptions card | Challenge / PRD | E3, E7 | `[ ]` | BFF tests + UI/manual QA |
-| Care Team card | Challenge / PRD | E3, E7 | `[ ]` | BFF tests + UI/manual QA |
-| Encounter History section | PRD | E3, E8 | `[ ]` | BFF tests + UI/manual QA |
-| Migration defense doc | Challenge / PRD | E9 | `[ ]` | Document review |
-| Final build/lint/test pass | PRD | E10 | `[ ]` | Bun commands |
+| OAuth login via OpenEMR | Challenge / PRD | E2 | `[x]` | Route tests + manual login |
+| Server-only token exchange | Challenge / PRD | E2 | `[x]` | Route tests + bundle/log review |
+| Patient search and selection | PRD | E5 | `[x]` | Bun search tests + component render tests |
+| Stable dashboard route | PRD | E6 | `[x]` | Typecheck/build + component render tests |
+| Patient identity header | Challenge / PRD | E6 | `[x]` | Normalizer tests + component render tests |
+| Allergies card | Challenge / PRD | E3, E7 | `[x]` | BFF tests + component render tests |
+| Problem List card | Challenge / PRD | E3, E7 | `[x]` | BFF tests + component render tests |
+| Medications card | Challenge / PRD | E3, E7 | `[x]` | BFF tests + component render tests |
+| Prescriptions card | Challenge / PRD | E3, E7 | `[x]` | BFF tests + component render tests |
+| Care Team card | Challenge / PRD | E3, E7 | `[x]` | BFF tests + component render tests |
+| Encounter History section | PRD | E3, E8 | `[x]` | BFF tests + normalizer/component coverage |
+| Migration defense doc | Challenge / PRD | E9 | `[x]` | Document review |
+| Final build/lint/test pass | PRD | E10 | `[x]` | Bun commands |
 
 ## Known Constraints And Non-Goals
 

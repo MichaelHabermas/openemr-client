@@ -71,12 +71,12 @@ describe('patient normalization', () => {
       id: 'patient-1',
       displayName: 'Ada Lovelace',
       sexLabel: 'Female',
+      birthDateLabel: '4/5/1980',
       mrnLabel: 'MRN-123',
       activeStatusLabel: 'Inactive',
       activeStatusDescription: 'Inactive patient record',
       isActive: false,
     });
-    expect(patient?.birthDateLabel).not.toBe('Not recorded');
   });
 
   test('patient name fallback order uses text, given/family, id, then Patient', () => {
@@ -122,6 +122,55 @@ describe('patient normalization', () => {
       activeStatusLabel: 'Unknown',
     });
   });
+
+  test('patient search text includes hidden names and all identifiers', () => {
+    const summary = normalizePatientSummary({
+      resourceType: 'Patient',
+      id: 'patient-4',
+      active: true,
+      birthDate: '1970-01-02',
+      gender: 'male',
+      identifier: [
+        { system: 'urn:openemr:mrn', value: 'MRN-444' },
+        { system: 'urn:openemr:account', value: 'ALT-888' },
+      ],
+      name: [{ text: 'Display Name', given: ['Hidden'], family: 'Family' }],
+    });
+
+    expect(summary?.searchText).toContain('patient-4');
+    expect(summary?.searchText).toContain('display name');
+    expect(summary?.searchText).toContain('hidden');
+    expect(summary?.searchText).toContain('family');
+    expect(summary?.searchText).toContain('1970-01-02');
+    expect(summary?.searchText).toContain('male');
+    expect(summary?.searchText).toContain('mrn-444');
+    expect(summary?.searchText).toContain('alt-888');
+    expect(summary?.searchText).toContain('active');
+  });
+
+  test('normalizePatientHeader returns null for non-patient input', () => {
+    expect(normalizePatientHeader(null)).toBeNull();
+    expect(normalizePatientHeader({ resourceType: 'Condition' })).toBeNull();
+  });
+
+  test('patient active status descriptions cover true false and unknown', () => {
+    expect(
+      normalizePatientHeader({ resourceType: 'Patient', id: 'active', active: true }),
+    ).toMatchObject({
+      activeStatusLabel: 'Active',
+      activeStatusDescription: 'Active patient record',
+    });
+    expect(
+      normalizePatientHeader({ resourceType: 'Patient', id: 'inactive', active: false }),
+    ).toMatchObject({
+      activeStatusLabel: 'Inactive',
+      activeStatusDescription: 'Inactive patient record',
+    });
+    expect(normalizePatientHeader({ resourceType: 'Patient', id: 'unknown' })).toMatchObject({
+      activeStatusLabel: 'Unknown',
+      activeStatusDescription: 'Active status not recorded',
+    });
+  });
 });
 
 describe('clinical normalization', () => {
@@ -161,7 +210,12 @@ describe('clinical normalization', () => {
     });
 
     expect(allergies[0]).toMatchObject({ substance: 'Unknown', hasPartialData: true });
-    expect(problems[0]).toMatchObject({ name: 'Unknown', hasPartialData: true });
+    expect(problems[0]).toMatchObject({
+      name: 'Unknown',
+      clinicalStatus: 'Unknown',
+      isActive: false,
+      hasPartialData: true,
+    });
     expect(medications[0]).toMatchObject({ name: 'Unknown', hasPartialData: true });
     expect(prescriptions[0]).toMatchObject({
       name: 'Unknown',
@@ -217,6 +271,53 @@ describe('clinical normalization', () => {
     });
 
     expect(rows.map((row) => row.id)).toEqual(['newer', 'older']);
+  });
+
+  test('problem active flag only applies to meaningful non-resolved statuses', () => {
+    expect(
+      normalizeClinicalBundle
+        .problems({
+          resourceType: 'Bundle',
+          entry: [
+            {
+              resource: {
+                resourceType: 'Condition',
+                id: 'active',
+                clinicalStatus: { text: 'active' },
+              },
+            },
+            {
+              resource: {
+                resourceType: 'Condition',
+                id: 'resolved',
+                clinicalStatus: { text: 'resolved' },
+              },
+            },
+            { resource: { resourceType: 'Condition', id: 'unknown' } },
+          ],
+        })
+        .map((row) => ({ id: row.id, isActive: row.isActive })),
+    ).toEqual([
+      { id: 'active', isActive: true },
+      { id: 'resolved', isActive: false },
+      { id: 'unknown', isActive: false },
+    ]);
+  });
+
+  test('encounter normalization preserves type and class separately', () => {
+    expect(
+      normalizeEncounter({
+        resourceType: 'Encounter',
+        id: 'enc-1',
+        class: { code: 'AMB', display: 'Ambulatory' },
+        type: [{ text: 'Office Visit' }],
+        period: { start: '2026-05-01' },
+      }),
+    ).toMatchObject({
+      type: 'Office Visit',
+      classLabel: 'Ambulatory',
+      start: '5/1/2026',
+    });
   });
 
   test('normalizeEncounter handles malformed optional fields without throwing', () => {

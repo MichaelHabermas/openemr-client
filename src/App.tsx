@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AppLayout } from '@/components/AppLayout';
 import { HomePage } from '@/routes/HomePage';
+import { PatientDashboardPage } from '@/routes/PatientDashboardPage';
 import { PatientsPage } from '@/routes/PatientsPage';
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path='/' element={<HomePage />} />
           <Route path='/patients' element={<PatientsPage />} />
+          <Route path='/patients/:patientId' element={<PatientDashboardPage />} />
           <Route path='*' element={<Navigate to='/' replace />} />
         </Route>
       </Routes>

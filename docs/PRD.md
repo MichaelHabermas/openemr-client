@@ -38,15 +38,15 @@ Build a Vite + React + TypeScript patient dashboard backed by a small Express BF
 - [x] Product direction confirmed: OAuth `state` hardening is security polish after dashboard feature parity.
 - [x] OpenEMR sibling repo identified as a source reference at `/Users/michaelhabermas/repos/GAI/openemr`.
 - [x] Demo seed fixture identified at `/Users/michaelhabermas/repos/GAI/openemr/agent-forge/fixtures/demo-patient-ground-truth.json`.
-- [ ] Patient dashboard route provides feature parity with the OpenEMR patient dashboard.
-- [ ] Persistent patient identity header is implemented.
-- [ ] Allergies card is implemented from live FHIR data.
-- [ ] Problem List card is implemented from live FHIR data.
-- [ ] Medications card is implemented from live FHIR data.
-- [ ] Prescriptions card is implemented from live FHIR data.
-- [ ] Care Team card is implemented from live FHIR data.
-- [ ] Additional clinical section is implemented from live API data.
-- [ ] `PATIENT_DASHBOARD_MIGRATION.md` is written.
+- [x] Patient dashboard route renders the required challenge sections from BFF/FHIR-backed data paths.
+- [x] Persistent patient identity header is implemented.
+- [x] Allergies card is implemented from live FHIR data.
+- [x] Problem List card is implemented from live FHIR data.
+- [x] Medications card is implemented from live FHIR data.
+- [x] Prescriptions card is implemented from live FHIR data.
+- [x] Care Team card is implemented from live FHIR data.
+- [x] Additional clinical section is implemented from live API data.
+- [x] `PATIENT_DASHBOARD_MIGRATION.md` is written.
 
 ## 2. User Experience & Functionality
 
@@ -93,8 +93,8 @@ Acceptance criteria:
 - [x] The browser receives an httpOnly cookie rather than a raw access token.
 - [x] Logging out clears the access-token cookie.
 - [ ] Authentication failures display a user-facing error state with enough context to retry or check configuration.
-- [ ] The OAuth `state` parameter is generated, stored, and verified rather than hard-coded. This is security polish after dashboard feature parity.
-- [ ] Required OAuth scopes include every FHIR resource needed by the final dashboard.
+- [x] The OAuth `state` parameter is generated, stored, and verified rather than hard-coded. This is security polish after dashboard feature parity.
+- [x] Required OAuth scopes include every FHIR resource needed by the final dashboard.
 
 **Story 1A: Search and select a patient**
 
@@ -103,11 +103,11 @@ As a clinician, I want to search and select from a patient list so that I can op
 Acceptance criteria:
 
 - [x] A basic patient list route exists at `/patients`.
-- [ ] The patient list includes a search input for filtering by patient name and available identifiers.
-- [ ] Patient rows display enough identity information to distinguish similar names, including name, DOB when available, sex when available, MRN/identifier when available, and active status when available.
-- [ ] Selecting a patient opens a stable patient dashboard route such as `/patients/:patientId`.
-- [ ] Search/filtering handles empty results without clearing the authenticated session.
-- [ ] The patient list remains a distinct entry point rather than automatically opening the first returned patient.
+- [x] The patient list includes a search input for filtering by patient name and available identifiers.
+- [x] Patient rows display enough identity information to distinguish similar names, including name, DOB when available, sex when available, MRN/identifier when available, and active status when available.
+- [x] Selecting a patient opens a stable patient dashboard route such as `/patients/:patientId`.
+- [x] Search/filtering handles empty results without clearing the authenticated session.
+- [x] The patient list remains a distinct entry point rather than automatically opening the first returned patient.
 
 **Story 2: Identify the patient safely**
 
@@ -115,14 +115,14 @@ As a clinician, I want a persistent patient header so that I can confirm I am vi
 
 Acceptance criteria:
 
-- [ ] The header remains visible above the clinical-card content on the dashboard.
-- [ ] The header displays patient name from FHIR `Patient.name`.
-- [ ] The header displays date of birth from FHIR `Patient.birthDate`.
-- [ ] The header displays sex from FHIR `Patient.gender`.
-- [ ] The header displays MRN from the appropriate FHIR `Patient.identifier` value.
-- [ ] The header displays active status from FHIR `Patient.active`.
-- [ ] Missing fields render explicit empty states such as "Unknown" or "Not recorded" rather than blank UI.
-- [ ] Header content is accessible to screen readers and does not rely on color alone for active/inactive status.
+- [x] The header remains visible above the clinical-card content on the dashboard.
+- [x] The header displays patient name from FHIR `Patient.name`.
+- [x] The header displays date of birth from FHIR `Patient.birthDate`.
+- [x] The header displays sex from FHIR `Patient.gender`.
+- [x] The header displays MRN from the appropriate FHIR `Patient.identifier` value.
+- [x] The header displays active status from FHIR `Patient.active`.
+- [x] Missing fields render explicit empty states such as "Unknown" or "Not recorded" rather than blank UI.
+- [x] Header content is accessible to screen readers and does not rely on color alone for active/inactive status.
 
 **Story 3: Review allergies**
 
@@ -130,10 +130,10 @@ As a clinician, I want to see allergy and intolerance information so that I can 
 
 Acceptance criteria:
 
-- [ ] The dashboard fetches allergies from live FHIR data, preferably `AllergyIntolerance?patient={id}`.
-- [ ] Each allergy row displays allergen/substance, clinical status, verification status when available, reaction when available, and severity when available.
-- [ ] The card handles no-known-allergy or no-data responses distinctly from fetch errors when the API provides enough signal.
-- [ ] Errors in this card do not blank the entire dashboard.
+- [x] The dashboard fetches allergies from live FHIR data, preferably `AllergyIntolerance?patient={id}`.
+- [x] Each allergy row displays allergen/substance, clinical status, verification status when available, reaction when available, and severity when available.
+- [x] The card handles no-known-allergy or no-data responses distinctly from fetch errors when the API provides enough signal.
+- [x] Errors in this card do not blank the entire dashboard.
 
 **Story 4: Review active and historical problems**
 
@@ -141,10 +141,10 @@ As a clinician, I want to see the patient's problem list so that I can understan
 
 Acceptance criteria:
 
-- [ ] The dashboard fetches problems from live FHIR data, preferably `Condition?patient={id}`.
-- [ ] Each problem displays condition name/code text, clinical status, onset or recorded date when available, and category when available.
-- [ ] Active problems are visually distinguishable from inactive/resolved problems without relying on color alone.
-- [ ] Empty, loading, and error states are handled at the card level.
+- [x] The dashboard fetches problems from live FHIR data, preferably `Condition?patient={id}`.
+- [x] Each problem displays condition name/code text, clinical status, onset or recorded date when available, and category when available.
+- [x] Active problems are visually distinguishable from inactive/resolved problems without relying on color alone.
+- [x] Empty, loading, and error states are handled at the card level.
 
 **Story 5: Review medications**
 
@@ -152,10 +152,10 @@ As a clinician, I want to see current medication information so that I can under
 
 Acceptance criteria:
 
-- [ ] The dashboard fetches medication-related data from live FHIR resources, such as `MedicationRequest`, `MedicationStatement`, or OpenEMR-supported medication endpoints.
-- [ ] Each medication displays name, status, dosage instructions when available, authored/effective date when available, and prescriber when available.
-- [ ] The implementation documents any OpenEMR-specific distinction between Medications and Prescriptions.
-- [ ] Empty, loading, and error states are handled at the card level.
+- [x] The dashboard fetches medication-related data from live FHIR resources, such as `MedicationRequest`, `MedicationStatement`, or OpenEMR-supported medication endpoints.
+- [x] Each medication displays name, status, dosage instructions when available, authored/effective date when available, and prescriber when available.
+- [x] The implementation documents any OpenEMR-specific distinction between Medications and Prescriptions.
+- [x] Empty, loading, and error states are handled at the card level.
 
 **Story 6: Review prescriptions**
 
@@ -163,10 +163,10 @@ As a clinician, I want to see prescriptions separately from general medication c
 
 Acceptance criteria:
 
-- [ ] The dashboard fetches prescription/order data from live FHIR data or OpenEMR REST API data.
-- [ ] Each prescription displays medication name, status, intent when available, authored date when available, dosage when available, and requester/prescriber when available.
-- [ ] The card clearly communicates when a prescription is active, stopped, completed, or unknown.
-- [ ] If OpenEMR exposes medications and prescriptions through overlapping resources, the mapping is documented in implementation notes and `PATIENT_DASHBOARD_MIGRATION.md`.
+- [x] The dashboard fetches prescription/order data from live FHIR data or OpenEMR REST API data.
+- [x] Each prescription displays medication name, status, intent when available, authored date when available, dosage when available, and requester/prescriber when available.
+- [x] The card clearly communicates when a prescription is active, stopped, completed, or unknown.
+- [x] If OpenEMR exposes medications and prescriptions through overlapping resources, the mapping is documented in implementation notes and `PATIENT_DASHBOARD_MIGRATION.md`.
 
 **Story 7: Review care team**
 
@@ -174,10 +174,10 @@ As a clinician or support staff member, I want to see the patient's care team so
 
 Acceptance criteria:
 
-- [ ] The dashboard fetches care team data from live FHIR data, preferably `CareTeam?patient={id}`.
-- [ ] Each care team participant displays name, role, status, and contact/reference information when available.
-- [ ] Practitioner or organization references are resolved or displayed clearly enough to be clinically useful.
-- [ ] Empty, loading, and error states are handled at the card level.
+- [x] The dashboard fetches care team data from live FHIR data, preferably `CareTeam?patient={id}`.
+- [x] Each care team participant displays name, role, status, and contact/reference information when available.
+- [x] Practitioner or organization references are resolved or displayed clearly enough to be clinically useful.
+- [x] Empty, loading, and error states are handled at the card level.
 
 **Story 8: Review encounter history**
 
@@ -186,10 +186,10 @@ As a clinician, I want to see recent encounters so that I can understand the pat
 Acceptance criteria:
 
 - [x] Encounter History is the selected additional section.
-- [ ] The dashboard fetches encounters from live FHIR data, preferably `Encounter?patient={id}`.
-- [ ] Each encounter displays type/class, status, start date/time, end date/time when available, location when available, and provider/participant when available.
-- [ ] Encounters are sorted reverse chronologically when dates are available.
-- [ ] The section has loading, empty, partial-data, and error states.
+- [x] The dashboard fetches encounters from live FHIR data, preferably `Encounter?patient={id}`.
+- [x] Each encounter displays type/class, status, start date/time, end date/time when available, location when available, and provider/participant when available.
+- [x] Encounters are sorted reverse chronologically when dates are available.
+- [x] The section has loading, empty, partial-data, and error states.
 
 **Story 9: Defend the modernization**
 
@@ -197,11 +197,11 @@ As a technical evaluator, I want a written migration defense so that I can judge
 
 Acceptance criteria:
 
-- [ ] `PATIENT_DASHBOARD_MIGRATION.md` exists in the repository root.
-- [ ] The document explains why Vite + React + TypeScript was chosen.
-- [ ] The document explains what was gained by moving presentation from PHP-rendered server pages to a typed client app.
-- [ ] The document explains tradeoffs, including BFF complexity, client-side state/error handling, build tooling, and OAuth/session concerns.
-- [ ] The document explains how OpenEMR remains the system of record and why backend changes were intentionally avoided.
+- [x] `PATIENT_DASHBOARD_MIGRATION.md` exists in the repository root.
+- [x] The document explains why Vite + React + TypeScript was chosen.
+- [x] The document explains what was gained by moving presentation from PHP-rendered server pages to a typed client app.
+- [x] The document explains tradeoffs, including BFF complexity, client-side state/error handling, build tooling, and OAuth/session concerns.
+- [x] The document explains how OpenEMR remains the system of record and why backend changes were intentionally avoided.
 
 ### Non-Goals
 
@@ -252,12 +252,12 @@ Current implementation state:
 
 Target implementation additions:
 
-- [ ] Add dashboard-specific API client methods under `src/lib/api/`.
-- [ ] Expand FHIR type coverage in `src/types/fhir.ts`.
-- [ ] Add patient dashboard helpers for display name, MRN selection, status formatting, dates, coding text, and reference display.
-- [ ] Add BFF routes for patient detail and required clinical resources.
-- [ ] Keep `/patients` as patient list/search and add patient dashboard navigation.
-- [ ] Add component-level loading, empty, and error states for each clinical section.
+- [x] Add dashboard-specific API client methods under the patient feature boundary.
+- [x] Expand FHIR type coverage in `src/types/fhir.ts`.
+- [x] Add patient dashboard helpers for display name, MRN selection, status formatting, dates, coding text, and reference display.
+- [x] Add BFF routes for patient detail and required clinical resources.
+- [x] Keep `/patients` as patient list/search and add patient dashboard navigation.
+- [x] Add component-level loading, empty, and error states for each clinical section.
 
 ### Data Requirements
 
@@ -393,14 +393,14 @@ Existing BFF endpoints:
 
 Target BFF endpoints:
 
-- [ ] `GET /api/patients`: keep existing patient search for patient selection.
-- [ ] `GET /api/patients/:patientId`: fetch one patient by ID.
-- [ ] `GET /api/patients/:patientId/allergies`: proxy allergy data.
-- [ ] `GET /api/patients/:patientId/problems`: proxy condition/problem data.
-- [ ] `GET /api/patients/:patientId/medications`: proxy medication data.
-- [ ] `GET /api/patients/:patientId/prescriptions`: proxy prescription/order data.
-- [ ] `GET /api/patients/:patientId/care-team`: proxy care team data.
-- [ ] `GET /api/patients/:patientId/encounters`: proxy encounter history.
+- [x] `GET /api/patients`: keep existing patient search for patient selection.
+- [x] `GET /api/patients/:patientId`: fetch one patient by ID.
+- [x] `GET /api/patients/:patientId/allergies`: proxy allergy data.
+- [x] `GET /api/patients/:patientId/problems`: proxy condition/problem data.
+- [x] `GET /api/patients/:patientId/medications`: proxy medication data.
+- [x] `GET /api/patients/:patientId/prescriptions`: proxy prescription/order data.
+- [x] `GET /api/patients/:patientId/care-team`: proxy care team data.
+- [x] `GET /api/patients/:patientId/encounters`: proxy encounter history.
 
 Implementation requirements:
 
@@ -417,19 +417,19 @@ Required views:
 
 - [x] Login/connect screen exists.
 - [x] Basic patient list exists.
-- [ ] Patient dashboard view exists.
-- [ ] Patient search exists.
-- [ ] Patient selector or route strategy supports opening a specific patient dashboard.
+- [x] Patient dashboard view exists.
+- [x] Patient search exists.
+- [x] Patient selector or route strategy supports opening a specific patient dashboard.
 
 Dashboard layout requirements:
 
-- [ ] Persistent patient header appears before clinical sections.
-- [ ] Required clinical cards are visible in a responsive grid or organized sections.
-- [ ] Each card has a consistent title, data rows, empty state, loading state, and error state.
-- [ ] Clinical content uses readable timestamps and labels.
-- [ ] Long clinical names or instructions wrap without breaking layout.
+- [x] Persistent patient header appears before clinical sections.
+- [x] Required clinical cards are visible in a responsive grid or organized sections.
+- [x] Each card has a consistent title, data rows, empty state, loading state, and error state.
+- [x] Clinical content uses readable timestamps and labels.
+- [x] Long clinical names or instructions wrap without breaking layout.
 - [ ] The layout works at mobile, tablet, and desktop widths.
-- [ ] Interactive controls use accessible button/link semantics.
+- [x] Interactive controls use accessible button/link semantics.
 
 ### Security and Privacy
 
@@ -439,11 +439,11 @@ Security requirements:
 - [x] Access token is stored in an httpOnly cookie.
 - [x] API calls from the browser use same-origin credentials.
 - [x] `.env` must not be read or committed by agents; `.env.example` is the source for documented configuration.
-- [ ] OAuth state must be generated and validated to reduce CSRF risk.
-- [ ] Cookies should use `secure: true` in production.
-- [ ] BFF logs must avoid printing access tokens, client secrets, or full patient payloads.
-- [ ] Error messages shown to the browser must not expose secrets.
-- [ ] Final documentation must explain that OpenEMR remains the system of record.
+- [x] OAuth state must be generated and validated to reduce CSRF risk.
+- [x] Cookies should use `secure: true` in production.
+- [x] BFF logs must avoid printing access tokens, client secrets, or full patient payloads.
+- [x] Error messages shown to the browser must not expose secrets.
+- [x] Final documentation must explain that OpenEMR remains the system of record.
 
 Privacy requirements:
 
@@ -470,16 +470,16 @@ Privacy requirements:
 
 Build and static verification:
 
-- [ ] `bun run typecheck` passes.
-- [ ] `bun run lint` passes.
-- [ ] `bun run build` passes.
+- [x] `bun run typecheck` passes.
+- [x] `bun run lint` passes.
+- [x] `bun run build` passes.
 
 Suggested automated tests:
 
-- [ ] FHIR display helpers handle missing fields, coding arrays, references, and dates.
-- [ ] Patient extraction handles non-Bundle, empty Bundle, and Bundle entries without resources.
-- [ ] API client functions surface 401 responses and non-JSON error bodies safely.
-- [ ] Dashboard cards render loading, empty, error, and populated states.
+- [x] FHIR display helpers handle missing fields, coding arrays, references, and dates.
+- [x] Patient extraction handles non-Bundle, empty Bundle, and Bundle entries without resources.
+- [x] API client functions surface 401 responses and non-JSON error bodies safely.
+- [x] Dashboard cards render loading, empty, error, and populated states.
 
 Manual QA:
 
@@ -504,7 +504,7 @@ FHIR resources can represent medication statements, medication requests, and pre
 
 **OAuth state and session hardening**
 
-The current implementation uses a hard-coded OAuth state value. Mitigation: generate per-login state, store it server-side or in a secure httpOnly transient cookie, and validate it on callback.
+The implementation generates per-login OAuth state, stores it in a transient httpOnly cookie, validates it on callback, and clears it after callback handling.
 
 **Clinical data display safety**
 
@@ -528,29 +528,29 @@ The prompt says the UX has already been addressed and the task is reimplementati
 - [x] Establish Express BFF.
 - [x] Implement OAuth authorization and token exchange.
 - [x] Implement basic patient search proxy.
-- [ ] Expand OAuth scopes for selected dashboard resources.
-- [ ] Add typed BFF service methods for dashboard FHIR resources.
+- [x] Expand OAuth scopes for selected dashboard resources.
+- [x] Add typed BFF service methods for dashboard FHIR resources.
 
 **Phase 2: Dashboard MVP**
 
-- [ ] Implement patient search.
-- [ ] Implement patient selection and patient dashboard routing.
-- [ ] Implement persistent patient header.
-- [ ] Implement Allergies card.
-- [ ] Implement Problem List card.
-- [ ] Implement Medications card.
-- [ ] Implement Prescriptions card.
-- [ ] Implement Care Team card.
-- [ ] Implement Encounter History as the additional section.
+- [x] Implement patient search.
+- [x] Implement patient selection and patient dashboard routing.
+- [x] Implement persistent patient header.
+- [x] Implement Allergies card.
+- [x] Implement Problem List card.
+- [x] Implement Medications card.
+- [x] Implement Prescriptions card.
+- [x] Implement Care Team card.
+- [x] Implement Encounter History as the additional section.
 
 **Phase 3: Quality and defense**
 
-- [ ] Add helper and rendering tests where risk is highest.
-- [ ] Run typecheck, lint, and production build.
-- [ ] Write `PATIENT_DASHBOARD_MIGRATION.md`.
+- [x] Add helper and rendering tests where risk is highest.
+- [x] Run typecheck, lint, and production build.
+- [x] Write `PATIENT_DASHBOARD_MIGRATION.md`.
 - [ ] Perform manual QA against a configured OpenEMR instance.
-- [ ] Capture any known API or fixture limitations in documentation.
-- [ ] Harden OAuth state handling after dashboard feature parity.
+- [x] Capture any known API or fixture limitations in documentation.
+- [x] Harden OAuth state handling after dashboard feature parity.
 
 **Phase 4: Polish if time permits**
 
