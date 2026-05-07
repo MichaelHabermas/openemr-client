@@ -94,8 +94,8 @@ flowchart LR
 | E8: Encounter History | `[x]` | Render additional API-backed Encounter History section. |
 | E9: Migration Defense Documentation | `[x]` | Add `PATIENT_DASHBOARD_MIGRATION.md`. |
 | E10: Final QA And Acceptance | `[x]` | Verify full challenge/PRD completion. |
-| E11: Live OpenEMR Manual QA | `[ ]` | Verify the completed app against a configured OpenEMR instance and browser viewports. |
-| E12: Live FHIR Mapping Reconciliation | `[ ]` | Resolve live data mapping questions for prescriptions, MRN, and patient search. |
+| E11: Live OpenEMR Manual QA | `[!]` | Verify the completed app against a configured OpenEMR instance and browser viewports. |
+| E12: Live FHIR Mapping Reconciliation | `[!]` | Resolve live data mapping questions for prescriptions, MRN, and patient search. |
 | E13: Post-MVP UX Resilience Polish | `[ ]` | Add resilience and UX polish after live QA clarifies the highest-value gaps. |
 
 ## E1: Testable BFF Foundation
@@ -760,7 +760,9 @@ Manual QA:
 
 ## E11: Live OpenEMR Manual QA
 
-Status: `[ ]`
+Status: `[!]`
+
+Blocker note, 2026-05-07: Live OAuth login reaches OpenEMR and returns to `/patients`; the patient index and `Patient/:id` header render live data for Alex Testpatient. However, every clinical dashboard endpoint currently returns upstream `401 upstream_auth_failed` for the configured OAuth session, and the BFF clears the access-token cookie as designed. Clinical-card live data, refresh persistence, and E12 resource mapping cannot be completed until the OpenEMR OAuth client/test user is verified with the dashboard read-only FHIR scopes: `user/AllergyIntolerance.read`, `user/Condition.read`, `user/MedicationRequest.read`, `user/CareTeam.read`, and `user/Encounter.read`.
 
 Purpose:
 
@@ -770,7 +772,9 @@ Purpose:
 
 #### E11.T1: Verify OAuth login and callback
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: Verified through Brave against the connected OpenEMR instance. `GET /login` redirected to OpenEMR OAuth, human-entered credentials completed login, and the callback returned to `http://localhost:5173/patients` with 13 live patients. BFF logs remained sanitized: no authorization code, access token, client secret, or raw patient payload was printed.
 
 Work:
 
@@ -787,7 +791,9 @@ Definition of Done:
 
 #### E11.T2: Verify logout and protected API behavior
 
-Status: `[ ]`
+Status: `[~]`
+
+Progress note, 2026-05-07: Verified unauthenticated protected API behavior with `GET /api/patients` returning `401 { "error": "not_authenticated" }`, and verified `POST /api/logout` returns `204` with an expired access-token cookie. Live clinical upstream `401`s also cleared the access-token cookie and returned the app to the login screen on refresh. Still needs a clean authenticated click-through of the visible app Log out button after the clinical-scope blocker is fixed.
 
 Work:
 
@@ -802,7 +808,9 @@ Definition of Done:
 
 #### E11.T3: Verify live patient dashboard data
 
-Status: `[ ]`
+Status: `[!]`
+
+Blocker note, 2026-05-07: Patient list and patient header live data were verified for Alex Testpatient (`DOB 4/12/1976`, sex Female, MRN `AF-DEMO-900001`, active status). Clinical cards did not load live data because Allergies, Problem List, Medications, Prescriptions, Care Team, and Encounter History all returned upstream `401 upstream_auth_failed`.
 
 Work:
 
@@ -818,7 +826,9 @@ Definition of Done:
 
 #### E11.T4: Verify permission and upstream-error states
 
-Status: `[ ]`
+Status: `[!]`
+
+Blocker note, 2026-05-07: Upstream clinical-resource `401`s were verified in BFF logs and the BFF cleared the access-token cookie. The current UI showed card-level "Please sign in again to view patient data" messages, then refresh returned to the login screen. This is safe, but it does not complete the missing-resource-permission acceptance path because the configured session is not authorized for any clinical resource.
 
 Work:
 
@@ -833,7 +843,9 @@ Definition of Done:
 
 #### E11.T5: Verify responsive and accessibility basics
 
-Status: `[ ]`
+Status: `[~]`
+
+Progress note, 2026-05-07: Desktop patient index and dashboard layout were visually checked in Brave and keyboard-reachable elements are exposed with accessible names in the browser accessibility tree. Mobile and tablet viewport checks remain open.
 
 Work:
 
@@ -849,7 +861,9 @@ Definition of Done:
 
 ## E12: Live FHIR Mapping Reconciliation
 
-Status: `[ ]`
+Status: `[!]`
+
+Blocker note, 2026-05-07: E12 clinical mapping work is blocked by the same upstream clinical-resource `401`s found in E11. Re-run E12 after the OpenEMR OAuth client/test user grants the read-only clinical FHIR scopes.
 
 Purpose:
 
@@ -859,7 +873,9 @@ Purpose:
 
 #### E12.T1: Verify medication and prescription source mapping
 
-Status: `[ ]`
+Status: `[!]`
+
+Blocker note, 2026-05-07: Could not compare live `MedicationRequest?patient={id}` payloads because the medications and prescriptions BFF routes returned upstream `401 upstream_auth_failed`.
 
 Work:
 
@@ -874,7 +890,9 @@ Definition of Done:
 
 #### E12.T2: Confirm reliable MRN identifier selection
 
-Status: `[ ]`
+Status: `[~]`
+
+Progress note, 2026-05-07: The live patient index and Alex Testpatient dashboard displayed MRN `AF-DEMO-900001`, matching the expected demo fixture identity. Raw `Patient.identifier` payload inspection is still needed before marking this complete.
 
 Work:
 
@@ -888,7 +906,9 @@ Definition of Done:
 
 #### E12.T3: Decide patient search strategy from live data
 
-Status: `[ ]`
+Status: `[~]`
+
+Progress note, 2026-05-07: The live patient index returned 13 patients, which is acceptable for the current client-side filter size. Search query behavior still needs an authenticated UI check after the clinical-scope blocker is fixed.
 
 Work:
 
@@ -902,7 +922,9 @@ Definition of Done:
 
 #### E12.T4: Update migration notes with live mapping results
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-07: Captured the live QA blocker in this plan and kept the medication/prescription mapping unverified rather than claiming live parity.
 
 Work:
 

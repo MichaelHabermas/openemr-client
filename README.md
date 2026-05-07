@@ -38,6 +38,8 @@ bun run dev
 
 Open [http://localhost:5173](http://localhost:5173), click **Login with OpenEMR**, complete OAuth; you should land on **Patients** with FHIR data.
 
+If the patient list works but dashboard clinical cards show sign-in errors, verify the OpenEMR OAuth client registration and user permissions include every dashboard read-only FHIR scope listed in `.env.example`.
+
 ### Scripts
 
 | Script            | Description                          |
@@ -71,7 +73,7 @@ await fetch("https://your-openemr.example.com/oauth2/default/registration", {
     grant_types: ["authorization_code"],
     token_endpoint_auth_method: "client_secret_post",
     scope:
-      "openid api:fhir api:oemr user/Patient.read user/Patient.write",
+      "openid api:fhir api:oemr user/Patient.read user/AllergyIntolerance.read user/Condition.read user/MedicationRequest.read user/CareTeam.read user/Encounter.read",
   }),
 })
   .then(async (res) => {

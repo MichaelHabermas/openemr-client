@@ -47,6 +47,7 @@ This is a known limitation. If live OpenEMR API verification later proves a bett
 
 - The dashboard uses read-only FHIR resources only.
 - Live OpenEMR fixture QA is still required to confirm exact data richness and any OpenEMR-specific medication/prescription distinction.
+- Live QA on 2026-05-07 verified OAuth login, patient search, and live `Patient/:id` header data, but the configured OpenEMR session returned upstream `401` for the clinical FHIR resources. Medication/prescription, care team, allergy, condition, and encounter mapping remain unverified until the OAuth client/test user grants the dashboard read-only clinical scopes.
 - Practitioner and organization references are displayed from FHIR `display` or `reference`; deeper reference resolution is not implemented.
 - No clinical write workflows are implemented.
 - No AI-generated clinical summaries, recommendations, or transformations are implemented.
