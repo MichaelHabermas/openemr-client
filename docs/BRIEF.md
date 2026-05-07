@@ -58,10 +58,10 @@ FHIR resource mapping:
 
 Treat `MedicationStatement` as unavailable unless implementation later verifies it in OpenEMR FHIR routes. If Medications and Prescriptions are both initially backed by `MedicationRequest`, keep them visually and semantically separate and document the mapping in `PATIENT_DASHBOARD_MIGRATION.md`.
 
-Update default OAuth scope to read-only dashboard needs:
+Update default OAuth scope to OpenEMR FHIR read/search dashboard needs:
 
 ```text
-openid api:fhir api:oemr user/Patient.read user/AllergyIntolerance.read user/Condition.read user/MedicationRequest.read user/CareTeam.read user/Encounter.read
+openid api:fhir api:oemr user/Patient.rs user/AllergyIntolerance.rs user/Condition.rs user/MedicationRequest.rs user/CareTeam.rs user/Encounter.rs
 ```
 
 Harden OAuth state during implementation:

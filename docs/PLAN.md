@@ -333,14 +333,14 @@ bun test
 
 Status: `[x]`
 
-Completion note, 2026-05-07: Default `OAUTH_SCOPE` now covers the read-only Patient, AllergyIntolerance, Condition, MedicationRequest, CareTeam, and Encounter resources needed by the dashboard; `.env.example` documents the optional override.
+Completion note, 2026-05-07: Default `OAUTH_SCOPE` now covers the OpenEMR read/search Patient, AllergyIntolerance, Condition, MedicationRequest, CareTeam, and Encounter resources needed by the dashboard; `.env.example` documents the optional override.
 
 Work:
 
 - Replace the existing default scope with:
 
 ```text
-openid api:fhir api:oemr user/Patient.read user/AllergyIntolerance.read user/Condition.read user/MedicationRequest.read user/CareTeam.read user/Encounter.read
+openid api:fhir api:oemr user/Patient.rs user/AllergyIntolerance.rs user/Condition.rs user/MedicationRequest.rs user/CareTeam.rs user/Encounter.rs
 ```
 
 - Update `.env.example` if it lists scopes.
@@ -762,7 +762,7 @@ Manual QA:
 
 Status: `[!]`
 
-Blocker note, 2026-05-07: Live OAuth login reaches OpenEMR and returns to `/patients`; the patient index and `Patient/:id` header render live data for Alex Testpatient. However, every clinical dashboard endpoint currently returns upstream `401 upstream_auth_failed` for the configured OAuth session, and the BFF clears the access-token cookie as designed. Clinical-card live data, refresh persistence, and E12 resource mapping cannot be completed until the OpenEMR OAuth client/test user is verified with the dashboard read-only FHIR scopes: `user/AllergyIntolerance.read`, `user/Condition.read`, `user/MedicationRequest.read`, `user/CareTeam.read`, and `user/Encounter.read`.
+Blocker note, 2026-05-07: Live OAuth login reaches OpenEMR and returns to `/patients`; the patient index and `Patient/:id` header render live data for Alex Testpatient. However, every clinical dashboard endpoint currently returns upstream `401 upstream_auth_failed` for the configured OAuth session, and the BFF clears the access-token cookie as designed. Code inspection of the connected OpenEMR build found that FHIR search/read routes authorize SMART scopes in the `.rs` form, so the app default scope was corrected to `user/Patient.rs`, `user/AllergyIntolerance.rs`, `user/Condition.rs`, `user/MedicationRequest.rs`, `user/CareTeam.rs`, and `user/Encounter.rs`. Clinical-card live data, refresh persistence, and E12 resource mapping need a fresh OAuth login against the corrected scope set.
 
 Purpose:
 
@@ -863,7 +863,7 @@ Definition of Done:
 
 Status: `[!]`
 
-Blocker note, 2026-05-07: E12 clinical mapping work is blocked by the same upstream clinical-resource `401`s found in E11. Re-run E12 after the OpenEMR OAuth client/test user grants the read-only clinical FHIR scopes.
+Blocker note, 2026-05-07: E12 clinical mapping work is blocked by the same upstream clinical-resource `401`s found in E11. Re-run E12 after a fresh OAuth grant with the OpenEMR `.rs` read/search scopes.
 
 Purpose:
 

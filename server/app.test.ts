@@ -61,7 +61,7 @@ const config: AppConfig = {
   redirectUri: 'http://localhost:5173/callback',
   port: 3000,
   appOrigin: 'http://localhost:5173',
-  oauthScope: 'openid api:fhir user/Patient.read',
+  oauthScope: 'openid api:fhir user/Patient.rs',
 };
 
 function createFakes() {
@@ -225,7 +225,7 @@ describe('createApp routes', () => {
     expect(redirectUrl.searchParams.get('response_type')).toBe('code');
     expect(redirectUrl.searchParams.get('client_id')).toBe('client-id');
     expect(redirectUrl.searchParams.get('redirect_uri')).toBe('http://localhost:5173/callback');
-    expect(redirectUrl.searchParams.get('scope')).toBe('openid api:fhir user/Patient.read');
+    expect(redirectUrl.searchParams.get('scope')).toBe('openid api:fhir user/Patient.rs');
     expect(redirectUrl.searchParams.has('client_secret')).toBe(false);
     const state = redirectUrl.searchParams.get('state');
     expect(state).toBeTruthy();
