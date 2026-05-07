@@ -31,17 +31,23 @@ export function PatientsPage() {
   return (
     <div className='space-y-6'>
       <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-        <h1 className='text-2xl font-semibold tracking-tight'>Patients</h1>
+        <div>
+          <p className='text-primary text-xs font-semibold tracking-wide uppercase'>
+            OpenEMR patient index
+          </p>
+          <h1 className='mt-1 text-2xl font-semibold tracking-tight'>Patients</h1>
+        </div>
         <Button variant='outline' onClick={() => void handleLogout()}>
           Log out
         </Button>
       </div>
 
-      <Card>
+      <Card className='rounded-lg'>
         <CardHeader>
-          <CardTitle>FHIR Patient search</CardTitle>
+          <CardTitle>Find a patient</CardTitle>
           <CardDescription>
-            Results from your OpenEMR FHIR <code>Patient</code> endpoint.
+            Search names, identifiers, demographics, and active status from the OpenEMR FHIR{' '}
+            <code>Patient</code> endpoint.
           </CardDescription>
         </CardHeader>
         <CardContent>

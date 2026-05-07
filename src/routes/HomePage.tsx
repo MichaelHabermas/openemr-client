@@ -8,13 +8,16 @@ export function HomePage() {
   const oauthError = params.get('error') === 'oauth';
 
   return (
-    <div className='space-y-6'>
-      <Card>
+    <div className='grid min-h-[calc(100dvh-9rem)] place-items-center'>
+      <Card className='w-full max-w-2xl rounded-lg border-primary/20 shadow-sm'>
         <CardHeader>
-          <CardTitle>Connect to OpenEMR</CardTitle>
+          <p className='text-primary text-xs font-semibold tracking-wide uppercase'>
+            Clinical co-pilot dashboard
+          </p>
+          <CardTitle className='text-3xl tracking-tight'>Connect to OpenEMR</CardTitle>
           <CardDescription>
-            Sign in with OAuth2. Your credentials stay on the server; the app only receives an
-            httpOnly session cookie.
+            Sign in with OAuth2 to open the modern patient dashboard. OpenEMR remains the source of
+            truth; this app is a clearer presentation layer over its FHIR data.
           </CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>

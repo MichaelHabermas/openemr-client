@@ -59,11 +59,13 @@ export function PatientHeader({ state }: PatientHeaderProps) {
 
   return (
     <section aria-labelledby='patient-header-title'>
-      <Card className='rounded-lg'>
+      <Card className='rounded-lg border-primary/20 shadow-sm'>
         <CardContent className='space-y-4'>
           <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
             <div>
-              <p className='text-muted-foreground text-xs font-medium'>Patient dashboard</p>
+              <p className='text-primary text-xs font-semibold tracking-wide uppercase'>
+                Patient dashboard
+              </p>
               <h1 id='patient-header-title' className='mt-1 text-2xl font-semibold tracking-tight'>
                 {patient.displayName}
               </h1>

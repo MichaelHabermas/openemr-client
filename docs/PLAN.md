@@ -74,6 +74,10 @@ flowchart LR
   E5 --> E10["E10 Final QA + acceptance"]
   E8 --> E10
   E9 --> E10
+  E10 --> E11["E11 Live OpenEMR manual QA"]
+  E11 --> E12["E12 Live FHIR mapping reconciliation"]
+  E11 --> E13["E13 Post-MVP UX resilience polish"]
+  E12 --> E13
 ```
 
 ## Epic Tracker
@@ -90,6 +94,9 @@ flowchart LR
 | E8: Encounter History | `[x]` | Render additional API-backed Encounter History section. |
 | E9: Migration Defense Documentation | `[x]` | Add `PATIENT_DASHBOARD_MIGRATION.md`. |
 | E10: Final QA And Acceptance | `[x]` | Verify full challenge/PRD completion. |
+| E11: Live OpenEMR Manual QA | `[ ]` | Verify the completed app against a configured OpenEMR instance and browser viewports. |
+| E12: Live FHIR Mapping Reconciliation | `[ ]` | Resolve live data mapping questions for prescriptions, MRN, and patient search. |
+| E13: Post-MVP UX Resilience Polish | `[ ]` | Add resilience and UX polish after live QA clarifies the highest-value gaps. |
 
 ## E1: Testable BFF Foundation
 
@@ -723,6 +730,8 @@ Status: `[x]`
 
 Completion note, 2026-05-07: Ran the required automated verification gates after the correctness audit fixes: `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun test`, and `bun run build` all pass. Live OpenEMR/manual browser QA remains listed separately in `docs/PRD.md` because it requires a configured OpenEMR instance.
 
+Cleanup note, 2026-05-07: Rechecked the current implementation and confirmed the challenge-required dashboard pieces are implemented and automated gates pass. `src/routes/HomePage.tsx` already displays a user-facing OAuth failure message for `?error=oauth`. Live OpenEMR/manual browser verification remains intentionally open and has been split into follow-up Epics E11-E13.
+
 Purpose:
 
 - Verify the implementation against the challenge brief, `docs/PRD.md`, and this plan.
@@ -749,6 +758,236 @@ Manual QA:
 - Keyboard access and visible focus states.
 - No access tokens, client secrets, or raw PHI payloads in browser logs, client bundles, or server logs.
 
+## E11: Live OpenEMR Manual QA
+
+Status: `[ ]`
+
+Purpose:
+
+- Verify the completed challenge implementation against a configured OpenEMR instance and real browser viewports. Do not mark this complete from automated tests alone.
+
+### Tasks
+
+#### E11.T1: Verify OAuth login and callback
+
+Status: `[ ]`
+
+Work:
+
+- Confirm `GET /login` reaches OpenEMR OAuth.
+- Complete login/consent with a configured test user.
+- Confirm OpenEMR returns to `/callback` and the browser lands back in the app with an authenticated session.
+- Confirm OAuth failure redirects to `/?error=oauth` and displays the existing user-facing error message.
+
+Definition of Done:
+
+- Login succeeds against a configured OpenEMR instance.
+- OAuth failure is visible to the user without exposing secrets.
+- No authorization codes, access tokens, client secrets, or raw upstream response bodies are visible in browser UI/logs.
+
+#### E11.T2: Verify logout and protected API behavior
+
+Status: `[ ]`
+
+Work:
+
+- Log out through the app.
+- Confirm the access-token cookie is cleared.
+- Confirm protected `/api/*` patient routes return `401 { "error": "not_authenticated" }` after logout or missing cookie.
+
+Definition of Done:
+
+- Logout clears the session cookie.
+- Refreshing or directly opening protected patient routes after logout does not show stale patient data.
+
+#### E11.T3: Verify live patient dashboard data
+
+Status: `[ ]`
+
+Work:
+
+- Open at least one configured test patient, preferably demo fixture patients Alex Testpatient and Riley Medmix when present.
+- Confirm the patient header renders name, date of birth, sex, MRN, and active status from live FHIR `Patient` data.
+- Confirm Allergies, Problem List, Medications, Prescriptions, Care Team, and Encounter History load from OpenEMR-backed BFF routes.
+- Refresh the dashboard route and confirm authenticated access persists through the httpOnly cookie.
+
+Definition of Done:
+
+- At least one live test patient renders the complete dashboard without relying on static fixtures.
+- Card-level loading, empty, partial, and error states remain independent.
+
+#### E11.T4: Verify permission and upstream-error states
+
+Status: `[ ]`
+
+Work:
+
+- Test with missing or insufficient FHIR resource permissions when feasible.
+- Confirm individual clinical cards show clear errors without blanking the whole dashboard.
+- Confirm upstream `401` clears the access-token cookie.
+
+Definition of Done:
+
+- Missing resource permissions produce clear card-level errors.
+- Upstream auth failure does not leave the browser in a misleading authenticated state.
+
+#### E11.T5: Verify responsive and accessibility basics
+
+Status: `[ ]`
+
+Work:
+
+- Check patient search and dashboard at mobile, tablet, and desktop widths.
+- Confirm the sticky patient header, clinical card grid, and encounter history do not overlap or clip text.
+- Confirm keyboard navigation and visible focus states for login, logout, patient search, and patient selection.
+
+Definition of Done:
+
+- Mobile-width layout remains readable.
+- Tablet and desktop layouts remain scannable.
+- Interactive controls are reachable by keyboard.
+
+## E12: Live FHIR Mapping Reconciliation
+
+Status: `[ ]`
+
+Purpose:
+
+- Resolve live OpenEMR data mapping questions discovered during E11 so the dashboard does not overfit to first-pass FHIR assumptions.
+
+### Tasks
+
+#### E12.T1: Verify medication and prescription source mapping
+
+Status: `[ ]`
+
+Work:
+
+- Compare live OpenEMR responses for `MedicationRequest?patient={id}` against dashboard Medications and Prescriptions expectations.
+- Determine whether `MedicationRequest` is sufficient for both cards.
+- If FHIR does not provide prescription parity, identify the smallest OpenEMR REST endpoint needed for prescriptions and document the route/API change before implementation.
+
+Definition of Done:
+
+- The MedicationRequest-first mapping is either confirmed or replaced by a documented implementation task.
+- Medications and Prescriptions remain visually and semantically distinct.
+
+#### E12.T2: Confirm reliable MRN identifier selection
+
+Status: `[ ]`
+
+Work:
+
+- Inspect live `Patient.identifier` payloads for configured demo/test patients.
+- Confirm the current MRN selection helper chooses the right identifier.
+- If it does not, document the identifier-system precedence needed before implementation.
+
+Definition of Done:
+
+- The dashboard's MRN display is verified against live OpenEMR FHIR `Patient` payloads.
+
+#### E12.T3: Decide patient search strategy from live data
+
+Status: `[ ]`
+
+Work:
+
+- Test client-side filtering with a realistic patient list size from the configured OpenEMR instance.
+- Decide whether `/api/patients` should remain a client-filtered bundle or add BFF query passthrough.
+
+Definition of Done:
+
+- Patient search remains client-side only if live bundle size and UX are acceptable.
+- Any server-side search change is captured as a future implementation task with expected query parameters.
+
+#### E12.T4: Update migration notes with live mapping results
+
+Status: `[ ]`
+
+Work:
+
+- Update `PATIENT_DASHBOARD_MIGRATION.md` or this plan with the verified medication/prescription, MRN, and search decisions.
+- Keep OpenEMR as the source of record and avoid documenting unverified resource support as fact.
+
+Definition of Done:
+
+- Future agents can see which live OpenEMR mappings were verified and which remain deferred.
+
+## E13: Post-MVP UX Resilience Polish
+
+Status: `[ ]`
+
+Purpose:
+
+- Add polish that improves resilience and perceived quality after live QA clarifies which gaps matter.
+
+### Tasks
+
+#### E13.T1: Add skeleton loaders for card-level loading states
+
+Status: `[ ]`
+
+Work:
+
+- Replace plain loading copy in clinical cards with compact skeleton rows.
+- Keep loading states perceivable to assistive technology.
+
+Definition of Done:
+
+- Card loading states preserve layout stability and do not obscure surrounding clinical data.
+
+#### E13.T2: Add route-level error boundaries
+
+Status: `[ ]`
+
+Work:
+
+- Add route-level error handling for unexpected render/runtime failures.
+- Keep clinical card API failures at the card level.
+
+Definition of Done:
+
+- Unexpected route errors show a controlled recovery surface instead of a blank app.
+
+#### E13.T3: Add request cancellation for patient switching
+
+Status: `[ ]`
+
+Work:
+
+- Add `AbortController` support to patient feature API calls and hooks.
+- Cancel in-flight patient and clinical resource requests when `patientId` changes.
+
+Definition of Done:
+
+- Rapid patient switching does not allow stale responses to overwrite newer patient state.
+
+#### E13.T4: Improve patient search if live QA proves it necessary
+
+Status: `[ ]`
+
+Work:
+
+- Tune patient search filtering only after E12.T3 identifies concrete live-data gaps.
+- Preserve search by name, DOB, sex, patient id, active status, and identifiers.
+
+Definition of Done:
+
+- Any search changes are driven by live OpenEMR evidence, not speculative complexity.
+
+#### E13.T5: Add optional-section switching only if more optional resources are implemented
+
+Status: `[ ]`
+
+Work:
+
+- Keep Encounter History as the only additional section unless another API-backed optional section is built.
+- If another optional section is implemented, add a simple selector without hiding the required challenge cards.
+
+Definition of Done:
+
+- No optional-section switcher exists unless there is more than one optional section to switch between.
+
 ## Acceptance Matrix
 
 | Requirement | Source | Implementation Area | Status | Verification |
@@ -766,6 +1005,9 @@ Manual QA:
 | Encounter History section | PRD | E3, E8 | `[x]` | BFF tests + normalizer/component coverage |
 | Migration defense doc | Challenge / PRD | E9 | `[x]` | Document review |
 | Final build/lint/test pass | PRD | E10 | `[x]` | Bun commands |
+| Live OpenEMR manual QA | PRD | E11 | `[ ]` | Configured OpenEMR + browser QA |
+| Live FHIR mapping reconciliation | PRD / Plan | E12 | `[ ]` | Fixture/live API review |
+| Post-MVP UX resilience polish | PRD | E13 | `[ ]` | Follow-up implementation + QA |
 
 ## Known Constraints And Non-Goals
 
@@ -777,11 +1019,6 @@ Manual QA:
 - Do not implement AI-generated clinical summaries, diagnosis suggestions, treatment recommendations, or medication recommendations.
 - Do not aim for a pixel-perfect PHP clone; preserve information hierarchy and workflow expectations.
 
-## Open Questions To Resolve During Implementation
+## Open Questions
 
-| Question | Status | When To Resolve |
-| --- | --- | --- |
-| Is `MedicationRequest` sufficient for both Medications and Prescriptions in the live OpenEMR fixture? | `[?]` | During E3/E7 fixture QA |
-| Are additional OpenEMR REST endpoints needed for prescription parity? | `[?]` | During E3/E7 fixture QA |
-| Should patient search remain client-side or add BFF query passthrough? | `[?]` | During E5 after bundle-size check |
-| Which MRN identifier system is most reliable in OpenEMR FHIR Patient payloads? | `[?]` | During E4/E6 normalization |
+All known open questions have been converted into explicit follow-up tasks under E12.

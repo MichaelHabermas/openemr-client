@@ -11,6 +11,7 @@ interface PartialRow {
 
 interface ClinicalCardProps<TRow extends PartialRow> {
   title: string;
+  titleId?: string;
   description: string;
   state: LoadState<TRow[]>;
   emptyMessage: string;
@@ -19,15 +20,16 @@ interface ClinicalCardProps<TRow extends PartialRow> {
 
 export function ClinicalCard<TRow extends PartialRow>({
   title,
+  titleId,
   description,
   state,
   emptyMessage,
   renderRow,
 }: ClinicalCardProps<TRow>) {
   return (
-    <Card className='rounded-lg'>
+    <Card className='min-h-full rounded-lg shadow-xs'>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle id={titleId}>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>{renderContent(state, emptyMessage, renderRow)}</CardContent>
@@ -63,7 +65,7 @@ function renderContent<TRow extends PartialRow>(
   return (
     <ul className='space-y-3'>
       {state.data.map((row) => (
-        <li key={row.id} className='rounded-md border p-3'>
+        <li key={row.id} className='bg-background/60 rounded-md border p-3'>
           {row.hasPartialData ? (
             <p className='mb-3 text-xs font-medium text-amber-800'>Partial data</p>
           ) : null}
