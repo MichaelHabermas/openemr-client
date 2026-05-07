@@ -1,5 +1,5 @@
-import type { FhirBundle } from "@/types/fhir";
-import { apiFetch } from "./http";
+import type { FhirBundle } from '@/types/fhir';
+import { apiFetch } from './http';
 
 export class PatientsApiError extends Error {
   constructor(
@@ -7,12 +7,12 @@ export class PatientsApiError extends Error {
     readonly status: number,
   ) {
     super(message);
-    this.name = "PatientsApiError";
+    this.name = 'PatientsApiError';
   }
 }
 
 export async function fetchPatientBundle(): Promise<FhirBundle> {
-  const res = await apiFetch("/api/patients");
+  const res = await apiFetch('/api/patients');
   if (!res.ok) {
     const body = await res.text();
     throw new PatientsApiError(body || res.statusText, res.status);
@@ -21,5 +21,5 @@ export async function fetchPatientBundle(): Promise<FhirBundle> {
 }
 
 export async function logout(): Promise<void> {
-  await apiFetch("/api/logout", { method: "POST" });
+  await apiFetch('/api/logout', { method: 'POST' });
 }

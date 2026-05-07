@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "bun test"
+    "test": "bun test",
+    "sweep": "bun run format && bun run lint && bun run typecheck && bun run test"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",

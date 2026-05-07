@@ -1,23 +1,17 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { patientDisplayName } from "@/features/patients/patient-helpers";
-import { fetchPatientBundle, logout, PatientsApiError } from "@/lib/api/patients";
-import type { FhirPatient } from "@/types/fhir";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { patientDisplayName } from '@/features/patients/patient-helpers';
+import { fetchPatientBundle, logout, PatientsApiError } from '@/lib/api/patients';
+import type { FhirPatient } from '@/types/fhir';
 
 function extractPatients(bundle: unknown): FhirPatient[] {
   if (
     !bundle ||
-    typeof bundle !== "object" ||
-    (bundle as { resourceType?: string }).resourceType !== "Bundle"
+    typeof bundle !== 'object' ||
+    (bundle as { resourceType?: string }).resourceType !== 'Bundle'
   ) {
     return [];
   }
@@ -26,10 +20,8 @@ function extractPatients(bundle: unknown): FhirPatient[] {
   const out: FhirPatient[] = [];
   for (const e of entries) {
     const r =
-      e && typeof e === "object" && "resource" in e
-        ? (e as { resource: unknown }).resource
-        : null;
-    if (r && typeof r === "object" && (r as FhirPatient).resourceType === "Patient") {
+      e && typeof e === 'object' && 'resource' in e ? (e as { resource: unknown }).resource : null;
+    if (r && typeof r === 'object' && (r as FhirPatient).resourceType === 'Patient') {
       out.push(r as FhirPatient);
     }
   }
@@ -53,7 +45,7 @@ export function PatientsPage() {
       } catch (e) {
         if (cancelled) return;
         if (e instanceof PatientsApiError && e.status === 401) {
-          navigate("/");
+          navigate('/');
           return;
         }
         setError(e instanceof Error ? e.message : String(e));
@@ -68,14 +60,14 @@ export function PatientsPage() {
 
   async function handleLogout() {
     await logout();
-    navigate("/");
+    navigate('/');
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Patients</h1>
-        <Button variant="outline" onClick={() => void handleLogout()}>
+    <div className='space-y-6'>
+      <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+        <h1 className='text-2xl font-semibold tracking-tight'>Patients</h1>
+        <Button variant='outline' onClick={() => void handleLogout()}>
           Log out
         </Button>
       </div>
@@ -89,24 +81,19 @@ export function PatientsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground text-sm">Loading…</p>
+            <p className='text-muted-foreground text-sm'>Loading…</p>
           ) : error ? (
-            <p className="text-destructive text-sm" role="alert">
+            <p className='text-destructive text-sm' role='alert'>
               {error}
             </p>
           ) : patients.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No patients found.</p>
+            <p className='text-muted-foreground text-sm'>No patients found.</p>
           ) : (
-            <ul className="divide-y rounded-lg border">
+            <ul className='divide-y rounded-lg border'>
               {patients.map((p, i) => (
-                <li
-                  key={p.id ?? `${patientDisplayName(p)}-${i}`}
-                  className="px-4 py-3 text-sm"
-                >
-                  <span className="font-medium">{patientDisplayName(p)}</span>
-                  {p.id ? (
-                    <span className="text-muted-foreground ml-2">({p.id})</span>
-                  ) : null}
+                <li key={p.id ?? `${patientDisplayName(p)}-${i}`} className='px-4 py-3 text-sm'>
+                  <span className='font-medium'>{patientDisplayName(p)}</span>
+                  {p.id ? <span className='text-muted-foreground ml-2'>({p.id})</span> : null}
                 </li>
               ))}
             </ul>

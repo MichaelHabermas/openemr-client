@@ -1,1 +1,1 @@
-export const accessTokenCookieName = "openemr_access_token";
+export const accessTokenCookieName = 'openemr_access_token';

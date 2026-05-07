@@ -1,5 +1,5 @@
-import axios from "axios";
-import type { AppConfig } from "../config";
+import axios from 'axios';
+import type { AppConfig } from '../config';
 
 export interface FhirService {
   fetchPatientBundle(accessToken: string): Promise<unknown>;

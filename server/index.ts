@@ -14,16 +14,16 @@ const app = createApp({ config, services: { oauth, fhir } });
 
 const distDir = path.join(import.meta.dir, '..', 'dist');
 if (fs.existsSync(distDir)) {
-	app.use(express.static(distDir));
-	app.get('/*splat', (req, res) => {
-		if (req.path.startsWith('/api')) {
-			res.status(404).json({ error: 'Not found' });
-			return;
-		}
-		res.sendFile(path.join(distDir, 'index.html'));
-	});
+  app.use(express.static(distDir));
+  app.get('/*splat', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    res.sendFile(path.join(distDir, 'index.html'));
+  });
 }
 
 app.listen(config.port, () => {
-	console.log(`BFF listening on http://localhost:${config.port}`);
+  console.log(`BFF listening on http://localhost:${config.port}`);
 });

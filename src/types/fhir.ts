@@ -1,7 +1,7 @@
 /** Minimal FHIR shapes used by the patient list UI */
 
 export interface FhirPatient {
-  resourceType: "Patient";
+  resourceType: 'Patient';
   id?: string;
   name?: Array<{
     family?: string;
@@ -11,7 +11,7 @@ export interface FhirPatient {
 }
 
 export interface FhirBundle {
-  resourceType: "Bundle";
+  resourceType: 'Bundle';
   entry?: Array<{
     resource?: FhirPatient;
   }>;
