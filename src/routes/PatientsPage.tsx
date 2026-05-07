@@ -1,66 +1,75 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { patientDisplayName } from '@/features/patients/patient-helpers';
-import { fetchPatientBundle, logout, PatientsApiError } from '@/lib/api/patients';
-import type { FhirPatient } from '@/types/fhir';
-
-function extractPatients(bundle: unknown): FhirPatient[] {
-  if (
-    !bundle ||
-    typeof bundle !== 'object' ||
-    (bundle as { resourceType?: string }).resourceType !== 'Bundle'
-  ) {
-    return [];
-  }
-  const entries = (bundle as { entry?: unknown[] }).entry;
-  if (!Array.isArray(entries)) return [];
-  const out: FhirPatient[] = [];
-  for (const e of entries) {
-    const r =
-      e && typeof e === 'object' && 'resource' in e ? (e as { resource: unknown }).resource : null;
-    if (r && typeof r === 'object' && (r as FhirPatient).resourceType === 'Patient') {
-      out.push(r as FhirPatient);
-    }
-  }
-  return out;
-}
+import { usePatients } from '@/features/patients/hooks';
+import { logout } from '@/lib/api/patients';
 
 export function PatientsPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [patients, setPatients] = useState<FhirPatient[]>([]);
+  const patientsState = usePatients();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const bundle = await fetchPatientBundle();
-        if (cancelled) return;
-        setPatients(extractPatients(bundle));
-        setError(null);
-      } catch (e) {
-        if (cancelled) return;
-        if (e instanceof PatientsApiError && e.status === 401) {
-          navigate('/');
-          return;
-        }
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
+    if (
+      patientsState.status === 'error' &&
+      patientsState.error.authRequired &&
+      !hasRedirected.current
+    ) {
+      hasRedirected.current = true;
+      navigate('/');
+    }
+  }, [navigate, patientsState]);
 
   async function handleLogout() {
     await logout();
     navigate('/');
+  }
+
+  function renderPatientList() {
+    if (patientsState.status === 'loading' || patientsState.status === 'idle') {
+      return <p className='text-muted-foreground text-sm'>Loading…</p>;
+    }
+
+    if (patientsState.status === 'error') {
+      return (
+        <p className='text-destructive text-sm' role='alert'>
+          {patientsState.error.message}
+        </p>
+      );
+    }
+
+    if (patientsState.isEmpty) {
+      return <p className='text-muted-foreground text-sm'>No patients found.</p>;
+    }
+
+    return (
+      <ul className='divide-y rounded-lg border'>
+        {patientsState.data.map((patient) => (
+          <li key={patient.id} className='px-4 py-3 text-sm'>
+            <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+              <span className='font-medium'>{patient.displayName}</span>
+              <span className='text-muted-foreground text-xs'>{patient.activeStatusLabel}</span>
+            </div>
+            <dl className='text-muted-foreground mt-2 grid gap-2 text-xs sm:grid-cols-3'>
+              <div>
+                <dt className='sr-only'>Date of birth</dt>
+                <dd>DOB: {patient.birthDateLabel}</dd>
+              </div>
+              <div>
+                <dt className='sr-only'>Sex</dt>
+                <dd>Sex: {patient.sexLabel}</dd>
+              </div>
+              <div>
+                <dt className='sr-only'>MRN</dt>
+                <dd>MRN: {patient.mrnLabel}</dd>
+              </div>
+            </dl>
+          </li>
+        ))}
+      </ul>
+    );
   }
 
   return (
@@ -79,26 +88,7 @@ export function PatientsPage() {
             Results from your OpenEMR FHIR <code>Patient</code> endpoint.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className='text-muted-foreground text-sm'>Loading…</p>
-          ) : error ? (
-            <p className='text-destructive text-sm' role='alert'>
-              {error}
-            </p>
-          ) : patients.length === 0 ? (
-            <p className='text-muted-foreground text-sm'>No patients found.</p>
-          ) : (
-            <ul className='divide-y rounded-lg border'>
-              {patients.map((p, i) => (
-                <li key={p.id ?? `${patientDisplayName(p)}-${i}`} className='px-4 py-3 text-sm'>
-                  <span className='font-medium'>{patientDisplayName(p)}</span>
-                  {p.id ? <span className='text-muted-foreground ml-2'>({p.id})</span> : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
+        <CardContent>{renderPatientList()}</CardContent>
       </Card>
     </div>
   );

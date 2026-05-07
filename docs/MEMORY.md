@@ -36,3 +36,6 @@ Keep entries concise. Prefer notes that will change future engineering behavior 
 ## FHIR Mapping Notes
 
 - **E3 medications/prescriptions:** `MedicationStatement` support is unverified and must not be assumed without OpenEMR route/API proof. Initial medications and prescriptions proxy work should use `MedicationRequest` for both endpoints until fixture proof shows a better mapping.
+- **E4 patient feature boundary:** Raw FHIR parsing belongs in `src/features/patients/normalizers.ts`, not route components. Routes should consume UI-facing models and hooks from `src/features/patients`.
+- **E4 dashboard model split:** Medications and prescriptions intentionally have separate UI models even though both currently normalize from `MedicationRequest`; preserve that split so E7 can render them distinctly without duplicating FHIR parsing.
+- **E4 test strategy:** For frontend FHIR handling, prefer `bun:test` coverage over unknown input to stable UI models. Keep browser-like component tooling deferred until E5/E6 unless a UI behavior cannot be proven otherwise.

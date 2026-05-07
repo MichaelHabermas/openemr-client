@@ -586,9 +586,9 @@ bun run typecheck
 
 ## E4: Patient Feature Module
 
-Status: `[ ]`
+Status: `[x]`
 
-Stub for later expansion.
+Completion note, 2026-05-07: Deepened `src/features/patients` into the frontend patient boundary. Added patient-specific API methods for all E3 BFF endpoints, partial dashboard-focused FHIR types, UI-facing patient/header/clinical row models, runtime-safe normalizers, independent async hooks, and a `/patients` route refactor that consumes normalized `PatientSummary` values instead of parsing raw FHIR. Verified with `bun test`, `bun run typecheck`, `bun run lint`, and `bun run build`.
 
 Purpose:
 
@@ -604,9 +604,9 @@ Expected outputs:
 
 Definition of Done:
 
-- Route components no longer parse FHIR directly.
-- Components consume UI-facing models.
-- FHIR normalization tests cover missing and malformed fields.
+- `[x]` Route components no longer parse FHIR directly.
+- `[x]` Components consume UI-facing models.
+- `[x]` FHIR normalization tests cover missing and malformed fields.
 
 ## E5: Patient Search And Selection
 
