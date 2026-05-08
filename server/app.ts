@@ -79,7 +79,7 @@ function protectedFhirRoute(
         error: mapped.body.error,
         upstream,
       });
-      res.status(mapped.status).json({ ...mapped.body, ...(upstream ? { upstream } : {}) });
+      res.status(mapped.status).json(mapped.body);
     }
   };
 }
