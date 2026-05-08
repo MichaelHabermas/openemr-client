@@ -20,9 +20,14 @@ export function createOAuthService(config: AppConfig): OAuthService {
         }),
         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
       );
-      const token = tokenRes.data?.access_token;
+      const { access_token: token, scope: grantedScope } = tokenRes.data ?? {};
       if (typeof token !== 'string' || !token) {
         throw new Error('Token response missing access_token');
+      }
+      if (typeof grantedScope === 'string') {
+        console.info('OAuth token granted scopes:', grantedScope);
+      } else {
+        console.warn('OAuth token response did not include a scope field');
       }
       return token;
     },

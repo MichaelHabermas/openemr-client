@@ -12,6 +12,7 @@ import {
   readAccessTokenCookie,
   setAccessTokenCookie,
 } from './auth/session';
+import axios from 'axios';
 import type { AppConfig } from './config';
 import { apiErrorCodes } from './errors/api-errors';
 import { mapFhirError } from './errors/fhir-error-mapper';
@@ -29,6 +30,17 @@ export interface CreateAppOptions {
 }
 
 type ProtectedFhirRequestHandler = (accessToken: string, req: express.Request) => Promise<unknown>;
+
+function fhirUpstreamDetail(error: unknown): string | undefined {
+  if (axios.isAxiosError(error) && error.response?.data) {
+    const d = error.response.data;
+    if (typeof d === 'string') return d.slice(0, 200);
+    try {
+      return JSON.stringify(d).slice(0, 200);
+    } catch {}
+  }
+  return undefined;
+}
 
 function firstQueryString(value: express.Request['query'][string]): string | undefined {
   if (typeof value === 'string') return value;
@@ -60,15 +72,14 @@ function protectedFhirRoute(
       res.json(payload);
     } catch (error) {
       const mapped = mapFhirError(error);
-      if (mapped.body.error === apiErrorCodes.upstreamAuthFailed) {
-        clearAccessTokenCookie(res);
-      }
+      const upstream = fhirUpstreamDetail(error);
       console.error('FHIR proxy failed', {
         operation,
         status: mapped.status,
         error: mapped.body.error,
+        upstream,
       });
-      res.status(mapped.status).json(mapped.body);
+      res.status(mapped.status).json({ ...mapped.body, ...(upstream ? { upstream } : {}) });
     }
   };
 }

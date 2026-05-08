@@ -12,7 +12,7 @@ const config: AppConfig = {
   redirectUri: 'http://localhost:5173/callback',
   port: 3000,
   appOrigin: 'http://localhost:5173',
-  oauthScope: 'openid api:fhir user/Patient.rs',
+  oauthScope: 'openid api:fhir user/Patient.read',
 };
 
 const originalGet = axios.get;

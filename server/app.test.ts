@@ -61,7 +61,7 @@ const config: AppConfig = {
   redirectUri: 'http://localhost:5173/callback',
   port: 3000,
   appOrigin: 'http://localhost:5173',
-  oauthScope: 'openid api:fhir user/Patient.rs',
+  oauthScope: 'openid api:fhir user/Patient.read',
 };
 
 function createFakes() {
@@ -225,7 +225,7 @@ describe('createApp routes', () => {
     expect(redirectUrl.searchParams.get('response_type')).toBe('code');
     expect(redirectUrl.searchParams.get('client_id')).toBe('client-id');
     expect(redirectUrl.searchParams.get('redirect_uri')).toBe('http://localhost:5173/callback');
-    expect(redirectUrl.searchParams.get('scope')).toBe('openid api:fhir user/Patient.rs');
+    expect(redirectUrl.searchParams.get('scope')).toBe('openid api:fhir user/Patient.read');
     expect(redirectUrl.searchParams.has('client_secret')).toBe(false);
     const state = redirectUrl.searchParams.get('state');
     expect(state).toBeTruthy();
@@ -476,14 +476,14 @@ describe('createApp routes', () => {
   });
 
   test.each([
-    [400, 400, 'bad_fhir_request', false],
-    [401, 401, 'upstream_auth_failed', true],
-    [403, 403, 'forbidden', false],
-    [404, 404, 'not_found', false],
-    [500, 502, 'fhir_unavailable', false],
+    [400, 400, 'bad_fhir_request'],
+    [401, 401, 'upstream_auth_failed'],
+    [403, 403, 'forbidden'],
+    [404, 404, 'not_found'],
+    [500, 502, 'fhir_unavailable'],
   ] as const)(
-    'GET /api/patients/:patientId/allergies maps upstream FHIR %i to controlled error',
-    async (upstreamStatus, responseStatus, error, clearsAccessToken) => {
+    'GET /api/patients/:patientId/allergies maps upstream FHIR %i to controlled error without clearing cookie',
+    async (upstreamStatus, responseStatus, error) => {
       const { app, services } = createTestApp();
       services.fhir.error = upstreamError(upstreamStatus);
 
@@ -502,15 +502,7 @@ describe('createApp routes', () => {
           patientId: 'patient-1',
         },
       ]);
-      if (clearsAccessToken) {
-        expect(response.cookies).toContainEqual({
-          name: accessTokenCookieName,
-          options: { path: '/' },
-          cleared: true,
-        });
-      } else {
-        expect(response.cookies).toEqual([]);
-      }
+      expect(response.cookies).toEqual([]);
     },
   );
 

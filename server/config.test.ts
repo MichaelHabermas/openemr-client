@@ -80,15 +80,15 @@ describe('loadConfig', () => {
     setRequiredEnv();
 
     expect(loadConfig().oauthScope).toBe(
-      'openid api:fhir api:oemr user/Patient.rs user/AllergyIntolerance.rs user/Condition.rs user/MedicationRequest.rs user/CareTeam.rs user/Encounter.rs',
+      'openid api:fhir api:oemr user/Patient.read user/AllergyIntolerance.read user/Condition.read user/MedicationRequest.read user/CareTeam.read user/Encounter.read',
     );
   });
 
   test('uses an explicit OAuth scope', () => {
     clearEnv();
     setRequiredEnv();
-    process.env.OAUTH_SCOPE = 'openid user/Patient.rs';
+    process.env.OAUTH_SCOPE = 'openid user/Patient.read';
 
-    expect(loadConfig().oauthScope).toBe('openid user/Patient.rs');
+    expect(loadConfig().oauthScope).toBe('openid user/Patient.read');
   });
 });

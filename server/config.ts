@@ -16,7 +16,7 @@ export function loadConfig() {
     appOrigin: required('APP_ORIGIN').replace(/\/$/, ''),
     oauthScope:
       process.env.OAUTH_SCOPE ??
-      'openid api:fhir api:oemr user/Patient.rs user/AllergyIntolerance.rs user/Condition.rs user/MedicationRequest.rs user/CareTeam.rs user/Encounter.rs',
+      'openid api:fhir api:oemr user/Patient.read user/AllergyIntolerance.read user/Condition.read user/MedicationRequest.read user/CareTeam.read user/Encounter.read',
   };
 }
 
