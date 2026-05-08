@@ -1,5 +1,7 @@
 # openemr-client
 
+**GitHub:** [https://github.com/MichaelHabermas/openemr-client](https://github.com/MichaelHabermas/openemr-client)
+
 React + TypeScript + Vite frontend with a small **Express BFF** for OpenEMR OAuth2 and FHIR. **Client secrets never ship to the browser**; the BFF sets an httpOnly cookie after the OAuth callback.
 
 ## Prerequisites
