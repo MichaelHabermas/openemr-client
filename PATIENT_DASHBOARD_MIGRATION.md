@@ -54,10 +54,32 @@ This is a known limitation. If live OpenEMR API verification later proves a bett
 
 ## Visual Fidelity
 
-As of 2026-05-09, the implementation was brought into closest possible alignment with the original PHP-rendered patient dashboard per the canon requirement ("Your job is not to redesign it — it is to reimplement it"; "You are not redesigning the interface"; "Feature parity with the original is the standard").
+As of 2026-05-09, the E11 epic brought the dashboard into closest possible alignment with the original PHP-rendered patient dashboard, audited against `docs/screenshots/`.
 
-The E11 epic performed side-by-side audit against `docs/screenshots/`, documented deltas, and remediated the patient header, clinical cards, and Encounter History to match original layout, density, typography, and section ordering.
+### What was aligned
 
-Modern patterns (responsive card grid, independent per-card loading/error states, green "Active" badges, sticky header treatment) were evaluated and reduced where they conflicted with the original monolithic structure. The patient picker remains as a deliberate navigation aid but is not part of the canon-required dashboard.
+- **Layout**: 4-zone structure matching original — dark header bar, dashboard title with static tab bar, 3-column inline sections (Allergies, Medical Problems, Medications), full-width tables below.
+- **Density**: Tightened spacing from `space-y-6` to `space-y-2`/`space-y-4`, `text-xs` throughout clinical sections.
+- **Section headers**: Blue underlined text matching original style, replacing Card wrappers with shadows and borders.
+- **Tables**: HTML `<table>` elements for Prescriptions, Care Team, and Encounter History, matching original PHP table rendering.
+- **Inline text**: Allergies show "substance (severity)", Problems show just the condition name, Medications show "name dosage" — no colored status badges in clinical sections.
+- **Patient header**: Dark navy bar with inline name and MRN, DOB and sex on second line, replacing the Card-wrapped layout with demographics grid.
+- **Tab bar**: Static Dashboard, History, Assessments, Report, Documents, Transactions, Issues, Ledger, External Data tabs matching original navigation structure.
+
+### Known deviations
+
+- **No Age in header**: `PatientHeaderModel` lacks a raw birth date for age calculation; header shows DOB instead.
+- **Prescriptions Qty and Refills**: Columns render "—" because `PrescriptionRow` does not carry these fields from FHIR `MedicationRequest`.
+- **Care Team Type, Facility, Since, Note, Remove**: Columns render "—" because `CareTeamRow` does not carry these fields from FHIR `CareTeam`.
+- **Encounter History**: This is an addition not present in the original dashboard; included as the challenge-required additional API-backed section.
+- **Tab bar is non-functional**: Tabs are static display only; the original PHP dashboard has functional tab navigation.
+- **StatusLabel in header**: PatientHeader still uses a styled status label for active/inactive; the original uses plain inline text.
+
+### What was preserved from the modern implementation
+
+- **Independent loading and error states**: Each clinical section loads independently, so one failed FHIR resource does not blank the entire dashboard. The original PHP dashboard does not have this behavior.
+- **Semantic HTML with ARIA**: Section landmarks, `aria-labelledby`, `aria-live` for loading states, and `role="alert"` for errors.
+- **Responsive grid**: The 3-column inline section grid collapses to single column on mobile viewports.
+- **Keyboard navigation**: All interactive elements remain keyboard-accessible.
 
 This decision is recorded here and in the E11 epic in `docs/PLAN.md`. OpenEMR remains the system of record; only presentation was adjusted for fidelity.

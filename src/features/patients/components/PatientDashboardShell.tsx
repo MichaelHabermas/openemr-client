@@ -1,6 +1,6 @@
 import { AllergiesCard } from './AllergiesCard';
 import { CareTeamCard } from './CareTeamCard';
-import { ClinicalCard } from './ClinicalCard';
+import { EncountersCard } from './EncountersCard';
 import { MedicationsCard } from './MedicationsCard';
 import { PatientHeader } from './PatientHeader';
 import { PrescriptionsCard } from './PrescriptionsCard';
@@ -15,6 +15,18 @@ import type {
   PrescriptionRow,
   ProblemRow,
 } from '../types';
+
+const TAB_LABELS = [
+  'Dashboard',
+  'History',
+  'Assessments',
+  'Report',
+  'Documents',
+  'Transactions',
+  'Issues',
+  'Ledger',
+  'External Data',
+] as const;
 
 interface PatientDashboardShellProps {
   patient: LoadState<PatientHeaderModel | null>;
@@ -35,61 +47,45 @@ export function PatientDashboardShell({
   careTeam,
   encounters,
 }: PatientDashboardShellProps) {
-  return (
-    <div className='space-y-6'>
-      <div className='bg-background/95 sticky top-16 z-10 pb-2 backdrop-blur'>
-        <PatientHeader state={patient} />
-      </div>
-      <section aria-labelledby='clinical-overview-title' className='space-y-3'>
-        <div>
-          <h2 id='clinical-overview-title' className='text-lg font-semibold tracking-tight'>
-            Clinical overview
-          </h2>
-          <p className='text-muted-foreground text-sm'>
-            Core chart sections load independently from OpenEMR-backed FHIR resources.
-          </p>
-        </div>
-        <div className='grid gap-4 lg:grid-cols-2 xl:grid-cols-3'>
-          <AllergiesCard state={allergies} />
-          <ProblemListCard state={problems} />
-          <MedicationsCard state={medications} />
-          <PrescriptionsCard state={prescriptions} />
-          <CareTeamCard state={careTeam} />
-        </div>
-      </section>
-      <section aria-labelledby='encounter-history-title'>
-        <ClinicalCard
-          title='Encounter History'
-          titleId='encounter-history-title'
-          description='Recent encounters from FHIR.'
-          state={encounters}
-          emptyMessage='No encounters recorded.'
-          renderRow={(encounter) => (
-            <div className='space-y-2'>
-              <div className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
-                <h3 className='font-medium'>{encounter.type}</h3>
-                <span className='text-muted-foreground text-sm'>{encounter.status}</span>
-              </div>
-              <dl className='text-muted-foreground grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3'>
-                <EncounterFact label='Class' value={encounter.classLabel} />
-                <EncounterFact label='Start' value={encounter.start} />
-                <EncounterFact label='End' value={encounter.end} />
-                <EncounterFact label='Location' value={encounter.location} />
-                <EncounterFact label='Participant' value={encounter.participant} />
-              </dl>
-            </div>
-          )}
-        />
-      </section>
-    </div>
-  );
-}
+  const patientName =
+    patient.status === 'success' && patient.data ? patient.data.displayName : null;
 
-function EncounterFact({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <dt className='font-medium text-foreground'>{label}</dt>
-      <dd>{value}</dd>
+    <div className='space-y-4'>
+      <PatientHeader state={patient} />
+
+      <div>
+        <h2 className='text-foreground text-base font-semibold'>
+          Medical Record Dashboard{patientName ? ` - ${patientName}` : ''}
+        </h2>
+        <nav aria-label='Dashboard tabs' className='border-border mt-1 border-b'>
+          <ul className='flex text-xs'>
+            {TAB_LABELS.map((label) => (
+              <li key={label}>
+                <span
+                  className={
+                    label === 'Dashboard'
+                      ? 'border-primary text-primary inline-block border-b-2 px-3 py-1 font-semibold'
+                      : 'text-muted-foreground inline-block px-3 py-1'
+                  }
+                  aria-current={label === 'Dashboard' ? 'page' : undefined}>
+                  {label}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+
+      <div className='grid grid-cols-1 gap-x-6 md:grid-cols-3'>
+        <AllergiesCard state={allergies} />
+        <ProblemListCard state={problems} />
+        <MedicationsCard state={medications} />
+      </div>
+
+      <PrescriptionsCard state={prescriptions} />
+      <CareTeamCard state={careTeam} />
+      <EncountersCard state={encounters} />
     </div>
   );
 }

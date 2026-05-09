@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +28,7 @@ export function HomePage() {
             </p>
           ) : null}
           <Button asChild size='lg'>
-            <a href='/login'>Login with OpenEMR</a>
+            <Link to='/login'>Login with OpenEMR</Link>
           </Button>
         </CardContent>
       </Card>

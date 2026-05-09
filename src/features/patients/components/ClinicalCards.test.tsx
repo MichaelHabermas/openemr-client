@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import { AllergiesCard } from './AllergiesCard';
 import { CareTeamCard } from './CareTeamCard';
-import { ClinicalCard } from './ClinicalCard';
+import { ClinicalSection } from './ClinicalSection';
 import { MedicationsCard } from './MedicationsCard';
 import { PatientDashboardShell } from './PatientDashboardShell';
 import { PatientListItem } from './PatientListItem';
@@ -26,13 +26,12 @@ interface TestRow {
   hasPartialData: boolean;
 }
 
-describe('ClinicalCard', () => {
+describe('ClinicalSection', () => {
   test('renders loading empty error and partial states', () => {
     expect(
       renderToStaticMarkup(
-        <ClinicalCard<TestRow>
+        <ClinicalSection<TestRow>
           title='Test'
-          description='Description'
           state={{ status: 'loading' }}
           emptyMessage='No rows.'
           renderRow={(row) => row.id}
@@ -42,9 +41,8 @@ describe('ClinicalCard', () => {
 
     expect(
       renderToStaticMarkup(
-        <ClinicalCard<TestRow>
+        <ClinicalSection<TestRow>
           title='Test'
-          description='Description'
           state={{ status: 'success', data: [], isEmpty: true }}
           emptyMessage='No rows.'
           renderRow={(row) => row.id}
@@ -54,9 +52,8 @@ describe('ClinicalCard', () => {
 
     expect(
       renderToStaticMarkup(
-        <ClinicalCard<TestRow>
+        <ClinicalSection<TestRow>
           title='Test'
-          description='Description'
           state={{
             status: 'error',
             error: { status: 502, message: 'Could not load.', authRequired: false },
@@ -69,9 +66,8 @@ describe('ClinicalCard', () => {
 
     expect(
       renderToStaticMarkup(
-        <ClinicalCard<TestRow>
+        <ClinicalSection<TestRow>
           title='Test'
-          description='Description'
           state={{
             status: 'success',
             data: [{ id: 'row-1', hasPartialData: true }],
@@ -109,8 +105,7 @@ describe('clinical section cards', () => {
     );
 
     expect(html).toContain('Penicillin');
-    expect(html).toContain('Verification');
-    expect(html).toContain('Rash');
+    expect(html).toContain('Moderate');
   });
 
   test('renders problem fields', () => {
@@ -136,7 +131,6 @@ describe('clinical section cards', () => {
     );
 
     expect(html).toContain('Hypertension');
-    expect(html).toContain('Category');
   });
 
   test('renders medication and prescription as distinct cards', () => {
@@ -183,7 +177,7 @@ describe('clinical section cards', () => {
     expect(medicationHtml).toContain('Medications');
     expect(medicationHtml).not.toContain('Intent');
     expect(prescriptionHtml).toContain('Prescriptions');
-    expect(prescriptionHtml).toContain('Intent');
+    expect(prescriptionHtml).toContain('Filled');
   });
 
   test('renders care team fields', () => {
@@ -208,7 +202,7 @@ describe('clinical section cards', () => {
 
     expect(html).toContain('Dr. Clinician');
     expect(html).toContain('Primary care provider');
-    expect(html).toContain('Practitioner/1');
+    expect(html).toContain('Member');
   });
 });
 

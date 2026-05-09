@@ -23,6 +23,8 @@
   --input: oklch(0.875 0.035 205);
   --ring: oklch(0.55 0.115 215);
   --radius: 0.5rem;
+  --patient-header-bg: oklch(0.25 0.03 240);
+  --patient-header-fg: oklch(0.92 0.01 210);
 }
 
 .dark {
@@ -69,6 +71,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-patient-header-bg: var(--patient-header-bg);
+  --color-patient-header-fg: var(--patient-header-fg);
 }
 
 @layer base {

@@ -92,7 +92,8 @@ flowchart LR
 | E8: Encounter History | `[x]` | Render additional API-backed Encounter History section. |
 | E9: Migration Defense Documentation | `[x]` | Add `PATIENT_DASHBOARD_MIGRATION.md`. |
 | E10: Final QA And Acceptance | `[x]` | Verify full challenge/PRD completion. |
-| E11: Live OpenEMR Manual QA | `[!]` | Verify the completed app against a configured OpenEMR instance and browser viewports. |
+| E11: Visual & Structural Fidelity | `[x]` | Align dashboard layout, density, and section treatment to match original PHP dashboard. |
+| E-Final: Live OpenEMR Manual QA | `[!]` | Verify the completed app against a configured OpenEMR instance and browser viewports. |
 | E12: Live FHIR Mapping Reconciliation | `[!]` | Resolve live data mapping questions for prescriptions, MRN, and patient search. |
 | E13: Post-MVP UX Resilience Polish | `[ ]` | Add resilience and UX polish after live QA clarifies the highest-value gaps. |
 
@@ -758,7 +759,9 @@ Manual QA:
 
 ## E11: Visual & Structural Fidelity to Original OpenEMR Patient Dashboard
 
-Status: `[ ]`
+Status: `[x]`
+
+Completion note, 2026-05-09: Restructured the dashboard to match the original PHP layout. Split ClinicalCard into ClinicalSection (inline lists) and ClinicalTable (HTML tables) with a shared renderLoadState utility. Restyled PatientHeader as a dark navy bar with inline name/MRN and DOB/Sex. Migrated AllergiesCard, ProblemListCard, and MedicationsCard to ClinicalSection with inline text (no badges). Migrated PrescriptionsCard and CareTeamCard to ClinicalTable with full column sets. Added EncountersCard as a ClinicalTable. Restructured PatientDashboardShell into 4-zone layout: dark header, dashboard title + static tab bar, 3-column inline sections, full-width tables. Updated tests and docs. Verified with `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun test`, and `bun run build`.
 
 Purpose:
 
@@ -775,51 +778,45 @@ Tasks:
 
 #### E11.T1: Side-by-side fidelity audit
 
-Work:
+Status: `[x]`
 
-- Compare each required section (patient header, 5 clinical cards, Encounter History) against the original screenshots in `docs/screenshots/`.
-- Document exact deltas in layout, borders, typography, spacing, badge treatment, and ordering.
-
-Definition of Done:
-
-- Audit checklist created and checked against canon screenshots.
+Completion note, 2026-05-09: Audited all dashboard sections against `docs/screenshots/`. Documented deltas in layout (card grid vs 3-column), density (generous spacing vs tight), typography (badges vs inline text), headers (Card wrapper vs dark bar), and tables (ClinicalField pairs vs HTML tables).
 
 #### E11.T2: Decision record and remediation plan
 
-Work:
+Status: `[x]`
 
-- Decide which modern patterns (e.g., card grid, independent loaders, green badges) are sacrificed for fidelity.
-- Record in updated `PATIENT_DASHBOARD_MIGRATION.md`.
+Completion note, 2026-05-09: Decided to remove Card wrappers, StatusLabel badges from clinical sections, ClinicalField label/value pairs, sticky header, and card grid layout. Recorded in `PATIENT_DASHBOARD_MIGRATION.md` Visual Fidelity section.
 
 #### E11.T3: Patient header remediation
 
-Work:
+Status: `[x]`
 
-- Adjust PatientHeader component and styling to match original header treatment (fields, order, visual weight).
+Completion note, 2026-05-09: Restyled PatientHeader as dark navy bar (`bg-patient-header-bg text-patient-header-fg`) with inline name + MRN as h1, DOB/Sex on second line, StatusLabel + "Open Encounter: None" right-aligned. Added CSS custom properties for header colors.
 
 #### E11.T4: Clinical cards remediation
 
-Work:
+Status: `[x]`
 
-- Update AllergiesCard, ProblemListCard, MedicationsCard, PrescriptionsCard, CareTeamCard to match original density, table/list style, and section placement.
+Completion note, 2026-05-09: Split ClinicalCard into ClinicalSection (inline lists) and ClinicalTable (HTML tables) with shared renderLoadState utility. Migrated AllergiesCard to inline "substance (severity)", ProblemListCard to just "name" with title "Medical Problems", MedicationsCard to "name dosage". Migrated PrescriptionsCard to table with Drug/Details/Qty/Refills/Filled columns, CareTeamCard to table with Type/Member/Role/Facility/Since/Status/Note/Remove columns.
 
 #### E11.T5: Encounter History remediation
 
-Work:
+Status: `[x]`
 
-- Reposition and restyle the Encounter History section to match original placement and treatment.
+Completion note, 2026-05-09: Created EncountersCard using ClinicalTable with Type/Class/Start/End/Location/Participant/Status columns. Restructured PatientDashboardShell into 4-zone layout with full-width tables below 3-column inline sections.
 
 #### E11.T6: Update migration defense
 
-Work:
+Status: `[x]`
 
-- Add "Visual Fidelity" section to `PATIENT_DASHBOARD_MIGRATION.md` explaining choices and any remaining deviations.
+Completion note, 2026-05-09: Rewrote Visual Fidelity section in `PATIENT_DASHBOARD_MIGRATION.md` with honest accounting of what was aligned, known deviations, and preserved modern patterns.
 
 #### E11.T7: Re-verify automated gates
 
-Work:
+Status: `[x]`
 
-- Run `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun test`, `bun run build` to ensure no breakage.
+Completion note, 2026-05-09: All automated gates pass: `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun test`, `bun run build`.
 
 Definition of Done:
 
