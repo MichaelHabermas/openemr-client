@@ -37,7 +37,10 @@ function fhirUpstreamDetail(error: unknown): string | undefined {
     if (typeof d === 'string') return d.slice(0, 200);
     try {
       return JSON.stringify(d).slice(0, 200);
-    } catch {}
+    } catch (error) {
+      console.error('FHIR upstream detail failed', { error });
+      return undefined;
+    }
   }
   return undefined;
 }
