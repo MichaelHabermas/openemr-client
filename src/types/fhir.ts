@@ -56,6 +56,7 @@ export interface FhirAllergyIntolerance {
   clinicalStatus?: FhirCodeableConcept;
   code?: FhirCodeableConcept;
   criticality?: string;
+  text?: { status?: string; div?: string };
   reaction?: Array<{
     manifestation?: FhirCodeableConcept[];
     severity?: string;

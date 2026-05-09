@@ -244,6 +244,14 @@ export function normalizePatientSummaries(bundle: unknown): PatientSummary[] {
   });
 }
 
+function extractNarrativeText(text: unknown): string | undefined {
+  if (!isRecord(text)) return undefined;
+  const div = stringValue(text.div);
+  if (!div) return undefined;
+  const stripped = div.replace(/<[^>]+>/g, '').trim();
+  return stripped || undefined;
+}
+
 function reactionText(allergy: FhirAllergyIntolerance): string {
   const reactions = Array.isArray(allergy.reaction) ? allergy.reaction : [];
   const labels = reactions.flatMap((reaction) =>
@@ -265,9 +273,13 @@ function allergySeverity(allergy: FhirAllergyIntolerance): string {
 
 export function normalizeAllergy(value: unknown): AllergyRow | null {
   if (!isResourceType<FhirAllergyIntolerance>(value, 'AllergyIntolerance')) return null;
+  let substance = displayCodeableConcept(value.code);
+  if (substance === UNKNOWN) {
+    substance = extractNarrativeText(value.text) ?? UNKNOWN;
+  }
   const row = {
     id: resourceId(value, 'allergy'),
-    substance: displayCodeableConcept(value.code),
+    substance,
     clinicalStatus: normalizeStatus(value.clinicalStatus),
     verificationStatus: normalizeStatus(value.verificationStatus),
     reaction: reactionText(value),
