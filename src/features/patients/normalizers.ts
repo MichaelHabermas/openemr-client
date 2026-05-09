@@ -108,7 +108,7 @@ function displayDate(value: unknown, fallback = NOT_RECORDED): string {
   return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-export function computeAge(birthDate: unknown): string {
+function computeAge(birthDate: unknown): string {
   const raw = stringValue(birthDate);
   if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return '';
   const [y, m, d] = raw.split('-').map(Number);
@@ -124,7 +124,7 @@ function normalizeStatus(value: unknown, fallback = UNKNOWN): string {
   return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : fallback;
 }
 
-export function patientDisplayName(patient: Pick<FhirPatient, 'id' | 'name'>): string {
+function patientDisplayName(patient: Pick<FhirPatient, 'id' | 'name'>): string {
   const names = Array.isArray(patient.name) ? patient.name : [];
   const first = names.find((name) => isRecord(name));
   if (!first) return patient.id ?? 'Patient';
