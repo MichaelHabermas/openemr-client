@@ -91,6 +91,5 @@ export interface EncounterRow {
   end: string;
   location: string;
   participant: string;
-  sortTime: number;
   hasPartialData: boolean;
 }

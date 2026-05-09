@@ -434,10 +434,7 @@ export function normalizeEncounter(value: unknown): EncounterRow | null {
         .filter(Boolean)
         .join(', ')
     : '';
-  const startRaw = stringValue(value.period?.start);
-  const sortTime = startRaw ? new Date(startRaw).getTime() : 0;
-
-  const row = {
+  return {
     id: resourceId(value, 'encounter'),
     type: type || UNKNOWN,
     classLabel: displayCodeableConcept(value.class),
@@ -446,11 +443,8 @@ export function normalizeEncounter(value: unknown): EncounterRow | null {
     end: displayDate(value.period?.end),
     location: location || NOT_RECORDED,
     participant: participant || NOT_RECORDED,
-    sortTime: Number.isNaN(sortTime) ? 0 : sortTime,
-  };
-  return {
-    ...row,
-    hasPartialData: !hasMeaningfulValue(row.type) || !hasMeaningfulValue(row.start),
+    hasPartialData:
+      !hasMeaningfulValue(type || UNKNOWN) || !hasMeaningfulValue(displayDate(value.period?.start)),
   };
 }
 
@@ -477,11 +471,16 @@ export const normalizeClinicalBundle = {
     }),
   careTeam: (bundle: unknown): CareTeamRow[] =>
     bundleEntriesOf<FhirCareTeam>(bundle, 'CareTeam').flatMap((item) => normalizeCareTeam(item)),
-  encounters: (bundle: unknown): EncounterRow[] =>
-    bundleEntriesOf<FhirEncounter>(bundle, 'Encounter')
-      .flatMap((item) => {
-        const row = normalizeEncounter(item);
-        return row ? [row] : [];
-      })
-      .sort((a, b) => b.sortTime - a.sortTime),
+  encounters: (bundle: unknown): EncounterRow[] => {
+    const entries = bundleEntriesOf<FhirEncounter>(bundle, 'Encounter');
+    const withSort = entries.flatMap((item) => {
+      const row = normalizeEncounter(item);
+      if (!row) return [];
+      const startRaw = stringValue(item.period?.start);
+      const t = startRaw ? new Date(startRaw).getTime() : 0;
+      return [{ row, sortTime: Number.isNaN(t) ? 0 : t }];
+    });
+    withSort.sort((a, b) => b.sortTime - a.sortTime);
+    return withSort.map((entry) => entry.row);
+  },
 };

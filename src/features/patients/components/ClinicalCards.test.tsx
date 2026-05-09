@@ -294,7 +294,6 @@ describe('PatientDashboardShell', () => {
             end: 'Not recorded',
             location: 'Clinic',
             participant: 'Dr. Clinician',
-            sortTime: 1,
             hasPartialData: false,
           },
         ])}

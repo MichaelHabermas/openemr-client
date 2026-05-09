@@ -47,8 +47,9 @@ This is a known limitation. If live OpenEMR API verification later proves a bett
 
 - The dashboard uses read/search FHIR resources only.
 - Live OpenEMR fixture QA is still required to confirm exact data richness and any OpenEMR-specific medication/prescription distinction.
-- Live QA on 2026-05-07 verified OAuth login, patient search, and live `Patient/:id` header data, but the configured OpenEMR session returned upstream `401` for the clinical FHIR resources. Code inspection of the connected OpenEMR build showed these FHIR search/read routes require SMART `.rs` scopes, so the default app scope now requests `user/Patient.rs`, `user/AllergyIntolerance.rs`, `user/Condition.rs`, `user/MedicationRequest.rs`, `user/CareTeam.rs`, and `user/Encounter.rs`. Medication/prescription, care team, allergy, condition, and encounter mapping remain unverified until a fresh OAuth grant succeeds with those scopes.
-- Practitioner and organization references are displayed from FHIR `display` or `reference`; deeper reference resolution is not implemented.
+- Live QA on 2026-05-07 verified OAuth login, patient search, and live `Patient/:id` header data. The configured OpenEMR session initially returned upstream `401` for clinical FHIR resources because the default OAuth scopes used `.read` instead of `.rs` (read+search). This was corrected on 2026-05-09; all six clinical endpoints now load live data successfully.
+- OpenEMR's `AllergyIntolerance` resources use FHIR `data-absent-reason` in the `code` field and place the actual substance name (e.g., "Penicillin") in the resource's `text.div` narrative. The normalizer falls back to narrative text extraction when `code` resolves to "Unknown".
+- Practitioner and organization references are displayed from FHIR `display` or `reference`; deeper reference resolution is not implemented. When OpenEMR omits `display` on participant member references, raw FHIR reference strings (e.g., `Practitioner/<uuid>`) are shown.
 - No clinical write workflows are implemented.
 - No AI-generated clinical summaries, recommendations, or transformations are implemented.
 
@@ -63,17 +64,15 @@ As of 2026-05-09, the E11 epic brought the dashboard into closest possible align
 - **Section headers**: Blue underlined text matching original style, replacing Card wrappers with shadows and borders.
 - **Tables**: HTML `<table>` elements for Prescriptions, Care Team, and Encounter History, matching original PHP table rendering.
 - **Inline text**: Allergies show "substance (severity)", Problems show just the condition name, Medications show "name dosage" — no colored status badges in clinical sections.
-- **Patient header**: Dark navy bar with inline name and MRN, DOB and sex on second line, replacing the Card-wrapped layout with demographics grid.
+- **Patient header**: Light background with avatar icon, inline name and MRN, DOB/Age/Sex on second line, matching original PHP dashboard styling.
 - **Tab bar**: Static Dashboard, History, Assessments, Report, Documents, Transactions, Issues, Ledger, External Data tabs matching original navigation structure.
 
 ### Known deviations
 
-- **No Age in header**: `PatientHeaderModel` lacks a raw birth date for age calculation; header shows DOB instead.
-- **Prescriptions Qty and Refills**: Columns render "—" because `PrescriptionRow` does not carry these fields from FHIR `MedicationRequest`.
-- **Care Team Type, Facility, Since, Note, Remove**: Columns render "—" because `CareTeamRow` does not carry these fields from FHIR `CareTeam`.
+- **Care Team Type, Note, Remove**: These columns render "—" because the standard FHIR `CareTeam` resource does not carry these fields; they may be OpenEMR UI extensions.
 - **Encounter History**: This is an addition not present in the original dashboard; included as the challenge-required additional API-backed section.
 - **Tab bar is non-functional**: Tabs are static display only; the original PHP dashboard has functional tab navigation.
-- **StatusLabel in header**: PatientHeader still uses a styled status label for active/inactive; the original uses plain inline text.
+- **Care Team member names**: When OpenEMR omits `display` on participant references, raw FHIR reference strings are shown instead of human-readable names. Resolving these would require additional FHIR API calls per reference.
 
 ### What was preserved from the modern implementation
 
