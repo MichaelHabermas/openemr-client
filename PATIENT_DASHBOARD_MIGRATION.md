@@ -51,3 +51,13 @@ This is a known limitation. If live OpenEMR API verification later proves a bett
 - Practitioner and organization references are displayed from FHIR `display` or `reference`; deeper reference resolution is not implemented.
 - No clinical write workflows are implemented.
 - No AI-generated clinical summaries, recommendations, or transformations are implemented.
+
+## Visual Fidelity
+
+As of 2026-05-09, the implementation was brought into closest possible alignment with the original PHP-rendered patient dashboard per the canon requirement ("Your job is not to redesign it — it is to reimplement it"; "You are not redesigning the interface"; "Feature parity with the original is the standard").
+
+The E11 epic performed side-by-side audit against `docs/screenshots/`, documented deltas, and remediated the patient header, clinical cards, and Encounter History to match original layout, density, typography, and section ordering.
+
+Modern patterns (responsive card grid, independent per-card loading/error states, green "Active" badges, sticky header treatment) were evaluated and reduced where they conflicted with the original monolithic structure. The patient picker remains as a deliberate navigation aid but is not part of the canon-required dashboard.
+
+This decision is recorded here and in the E11 epic in `docs/PLAN.md`. OpenEMR remains the system of record; only presentation was adjusted for fidelity.

@@ -34,7 +34,7 @@ Keep entries concise. Prefer notes that will change future engineering behavior 
 
 ## Product And Design Memory
 
-- **Spiritual fidelity:** Preserve OpenEMR's clinical information hierarchy and clinician muscle memory, but do not copy confusing PHP-era presentation patterns just because they exist.
+- **Spiritual fidelity:** Match the original OpenEMR PHP patient dashboard interface (layout, density, section ordering, typography, status treatment) as closely as possible per the absolute canon brief ("do not redesign the interface"; "make it as close as possible"); preserve information hierarchy and clinician muscle memory.
 - **Clinical surface tone:** The dashboard should feel like a quiet clinical command center: dense, scannable, stable, accessible, and low-drama.
 - **Improve where safety improves:** Explicit empty/error/partial states, text status labels, deliberate patient selection, and clearer section hierarchy are intentional improvements, not departures.
 - **Easy transition:** Keep familiar section names and patient-dashboard flow unless there is a concrete safety, clarity, or maintainability reason to change them.

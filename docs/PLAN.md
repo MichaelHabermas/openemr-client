@@ -74,10 +74,8 @@ flowchart LR
   E5 --> E10["E10 Final QA + acceptance"]
   E8 --> E10
   E9 --> E10
-  E10 --> E11["E11 Live OpenEMR manual QA"]
-  E11 --> E12["E12 Live FHIR mapping reconciliation"]
-  E11 --> E13["E13 Post-MVP UX resilience polish"]
-  E12 --> E13
+  E10 --> E11["E11 Visual & Structural Fidelity to Original OpenEMR Patient Dashboard"]
+  E11 --> E-Final["E-Final Live OpenEMR Manual QA"]
 ```
 
 ## Epic Tracker
@@ -730,7 +728,7 @@ Status: `[x]`
 
 Completion note, 2026-05-07: Ran the required automated verification gates after the correctness audit fixes: `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun test`, and `bun run build` all pass. Live OpenEMR/manual browser QA remains listed separately in `docs/PRD.md` because it requires a configured OpenEMR instance.
 
-Cleanup note, 2026-05-07: Rechecked the current implementation and confirmed the challenge-required dashboard pieces are implemented and automated gates pass. `src/routes/HomePage.tsx` already displays a user-facing OAuth failure message for `?error=oauth`. Live OpenEMR/manual browser verification remains intentionally open and has been split into follow-up Epics E11-E13.
+Cleanup note, 2026-05-07: Rechecked the current implementation and confirmed the challenge-required dashboard pieces are implemented and automated gates pass. `src/routes/HomePage.tsx` already displays a user-facing OAuth failure message for `?error=oauth`. Live OpenEMR/manual browser verification remains intentionally open and has been split into follow-up Epics E11 (Visual & Structural Fidelity) and E-Final (live QA).
 
 Purpose:
 
@@ -758,7 +756,79 @@ Manual QA:
 - Keyboard access and visible focus states.
 - No access tokens, client secrets, or raw PHI payloads in browser logs, client bundles, or server logs.
 
-## E11: Live OpenEMR Manual QA
+## E11: Visual & Structural Fidelity to Original OpenEMR Patient Dashboard
+
+Status: `[ ]`
+
+Purpose:
+
+Align the current React implementation to the closest possible visual and structural match with the original PHP-rendered OpenEMR patient dashboard (as captured in `docs/screenshots/` and per the absolute canon brief in `docs/AgentForge—Clinical-Co-Pilot-W2—Surprise-Challenge_Modernize-the-Patient-Dashboard.txt` and `.pdf`). The canon explicitly states "Your job is not to redesign it — it is to reimplement it" and "You are not redesigning the interface." "Feature parity with the original is the standard."
+
+Key Constraints:
+
+- Match layout, information density, typography, section ordering, and status treatment of the original as closely as feasible.
+- Reduce or remove independent per-card loading states and modern card-grid presentation if they conflict with the original monolithic PHP structure.
+- The patient picker (`/patients`) page may remain as-is or be de-emphasized; the focus is the dashboard itself.
+- Errors and data issues will be surfaced via tests and logs rather than elaborate client UX.
+
+Tasks:
+
+#### E11.T1: Side-by-side fidelity audit
+
+Work:
+
+- Compare each required section (patient header, 5 clinical cards, Encounter History) against the original screenshots in `docs/screenshots/`.
+- Document exact deltas in layout, borders, typography, spacing, badge treatment, and ordering.
+
+Definition of Done:
+
+- Audit checklist created and checked against canon screenshots.
+
+#### E11.T2: Decision record and remediation plan
+
+Work:
+
+- Decide which modern patterns (e.g., card grid, independent loaders, green badges) are sacrificed for fidelity.
+- Record in updated `PATIENT_DASHBOARD_MIGRATION.md`.
+
+#### E11.T3: Patient header remediation
+
+Work:
+
+- Adjust PatientHeader component and styling to match original header treatment (fields, order, visual weight).
+
+#### E11.T4: Clinical cards remediation
+
+Work:
+
+- Update AllergiesCard, ProblemListCard, MedicationsCard, PrescriptionsCard, CareTeamCard to match original density, table/list style, and section placement.
+
+#### E11.T5: Encounter History remediation
+
+Work:
+
+- Reposition and restyle the Encounter History section to match original placement and treatment.
+
+#### E11.T6: Update migration defense
+
+Work:
+
+- Add "Visual Fidelity" section to `PATIENT_DASHBOARD_MIGRATION.md` explaining choices and any remaining deviations.
+
+#### E11.T7: Re-verify automated gates
+
+Work:
+
+- Run `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun test`, `bun run build` to ensure no breakage.
+
+Definition of Done:
+
+- All required dashboard sections render with visual structure matching the original PHP version.
+- `PATIENT_DASHBOARD_MIGRATION.md` contains honest fidelity accounting.
+- Automated checks pass.
+- Ready for E-Final live OpenEMR QA.
+
+## E-Final: Live OpenEMR Manual QA
 
 Status: `[!]`
 
@@ -1043,4 +1113,17 @@ Definition of Done:
 
 ## Open Questions
 
-All known open questions have been converted into explicit follow-up tasks under E12.
+All known open questions have been converted into explicit follow-up tasks under E11 and E-Final.
+
+## Documentation Sync Audit (2026-05-09)
+
+| Doc | Section | Issue | Severity |
+|-----|---------|-------|----------|
+| docs/MEMORY.md | Product And Design Memory | "do not copy confusing PHP-era presentation patterns just because they exist" directly conflicted with canon "do not redesign the interface" and "make it as close as possible" | Critical |
+| docs/PLAN.md | Epic Tracker / Dependency Map / Known Constraints | Listed E12/E13 after fidelity requirement; "Do not aim for a pixel-perfect PHP clone" contradicted canon directive | Warning |
+| design-handoff/docs/DESIGN.md | Aesthetic | "faithful migration" and "dense-pro" compatible with canon, but no explicit reference to `docs/screenshots/` or fidelity decision | Info |
+| docs/PRD.md / docs/BRIEF.md | Executive Summary / Goal | Correctly reference canon txt/pdf and use "reimplement" / "not a speculative redesign" language; no drift | Info |
+| CLAUDE.md / AGENTS.md | Rules | Enforce OpenEMR as system of record and no backend changes; aligned with canon | Info |
+| PATIENT_DASHBOARD_MIGRATION.md | All | Lacked "Visual Fidelity" section documenting alignment choices and tradeoffs | Warning |
+
+All documentation now treats the absolute canon (`docs/AgentForge—Clinical-Co-Pilot-W2—Surprise-Challenge_Modernize-the-Patient-Dashboard.txt` and `.pdf`) as the source of truth for required sections, "do not redesign the interface", and "feature parity with the original".
