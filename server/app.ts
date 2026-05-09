@@ -82,6 +82,9 @@ function protectedFhirRoute(
         error: mapped.body.error,
         upstream,
       });
+      if (mapped.status === 401) {
+        clearAccessTokenCookie(res);
+      }
       res.status(mapped.status).json(mapped.body);
     }
   };

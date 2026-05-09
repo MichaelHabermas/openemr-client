@@ -3,6 +3,7 @@ import { accessTokenCookieName } from '../constants';
 
 const accessTokenCookieOptions = {
   httpOnly: true,
+  maxAge: 3600 * 1000,
   path: '/',
   sameSite: 'lax',
 } satisfies CookieOptions;

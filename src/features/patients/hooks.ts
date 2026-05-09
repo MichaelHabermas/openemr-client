@@ -50,10 +50,15 @@ function useAsyncPatientState<T>(
   load: () => Promise<T>,
   isEmpty: (data: T) => boolean,
   deps: DependencyList,
+  enabled = true,
 ): LoadState<T> {
-  const [state, setState] = useState<LoadState<T>>({ status: 'loading' });
+  const [state, setState] = useState<LoadState<T>>({
+    status: enabled ? 'loading' : 'idle',
+  });
 
   useEffect(() => {
+    if (!enabled) return;
+
     let cancelled = false;
     queueMicrotask(() => {
       if (!cancelled) setState({ status: 'loading' });
@@ -86,10 +91,12 @@ export function usePatients(): LoadState<PatientSummary[]> {
 }
 
 export function usePatient(patientId: string): LoadState<PatientHeaderModel | null> {
+  const enabled = Boolean(patientId.trim());
   return useAsyncPatientState(
     async () => normalizePatientHeader(await fetchPatient(patientId)),
     (patient) => patient === null,
     [patientId],
+    enabled,
   );
 }
 
@@ -103,52 +110,64 @@ type ClinicalRowsByKind = {
 };
 
 function usePatientAllergies(patientId: string): LoadState<ClinicalRowsByKind['allergies']> {
+  const enabled = Boolean(patientId.trim());
   return useAsyncPatientState(
     async () => normalizeClinicalBundle.allergies(await fetchPatientAllergies(patientId)),
     (rows) => rows.length === 0,
     [patientId],
+    enabled,
   );
 }
 
 function usePatientProblems(patientId: string): LoadState<ClinicalRowsByKind['problems']> {
+  const enabled = Boolean(patientId.trim());
   return useAsyncPatientState(
     async () => normalizeClinicalBundle.problems(await fetchPatientProblems(patientId)),
     (rows) => rows.length === 0,
     [patientId],
+    enabled,
   );
 }
 
 function usePatientMedications(patientId: string): LoadState<ClinicalRowsByKind['medications']> {
+  const enabled = Boolean(patientId.trim());
   return useAsyncPatientState(
     async () => normalizeClinicalBundle.medications(await fetchPatientMedications(patientId)),
     (rows) => rows.length === 0,
     [patientId],
+    enabled,
   );
 }
 
 function usePatientPrescriptions(
   patientId: string,
 ): LoadState<ClinicalRowsByKind['prescriptions']> {
+  const enabled = Boolean(patientId.trim());
   return useAsyncPatientState(
     async () => normalizeClinicalBundle.prescriptions(await fetchPatientPrescriptions(patientId)),
     (rows) => rows.length === 0,
     [patientId],
+    enabled,
   );
 }
 
 function usePatientCareTeam(patientId: string): LoadState<ClinicalRowsByKind['careTeam']> {
+  const enabled = Boolean(patientId.trim());
   return useAsyncPatientState(
     async () => normalizeClinicalBundle.careTeam(await fetchPatientCareTeam(patientId)),
     (rows) => rows.length === 0,
     [patientId],
+    enabled,
   );
 }
 
 function usePatientEncounters(patientId: string): LoadState<ClinicalRowsByKind['encounters']> {
+  const enabled = Boolean(patientId.trim());
   return useAsyncPatientState(
     async () => normalizeClinicalBundle.encounters(await fetchPatientEncounters(patientId)),
     (rows) => rows.length === 0,
     [patientId],
+    enabled,
   );
 }
 

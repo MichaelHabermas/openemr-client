@@ -226,13 +226,24 @@ describe('clinical normalization', () => {
   });
 
   test('medication and prescription models stay semantically separate', () => {
-    const medicationRequest = {
+    const bundle = {
       resourceType: 'Bundle',
       entry: [
         {
           resource: {
             resourceType: 'MedicationRequest',
-            id: 'med-1',
+            id: 'med-plan',
+            status: 'active',
+            intent: 'plan',
+            medicationCodeableConcept: { text: 'Lisinopril 10 mg' },
+            dosageInstruction: [{ text: 'Take once daily' }],
+            requester: { display: 'Dr. PCP' },
+          },
+        },
+        {
+          resource: {
+            resourceType: 'MedicationRequest',
+            id: 'med-order',
             status: 'active',
             intent: 'order',
             authoredOn: '2026-05-01',
@@ -244,21 +255,77 @@ describe('clinical normalization', () => {
       ],
     };
 
-    expect(normalizeClinicalBundle.medications(medicationRequest)[0]).toMatchObject({
-      id: 'med-1',
+    const meds = normalizeClinicalBundle.medications(bundle);
+    expect(meds).toHaveLength(1);
+    expect(meds[0]).toMatchObject({ id: 'med-plan', name: 'Lisinopril 10 mg' });
+
+    const rxs = normalizeClinicalBundle.prescriptions(bundle);
+    expect(rxs).toHaveLength(1);
+    expect(rxs[0]).toMatchObject({
+      id: 'med-order',
       name: 'Atorvastatin 20 mg',
-      status: 'Active',
-      dosage: 'Take once daily',
-      prescriber: 'Dr. Clinician',
-    });
-    expect(normalizeClinicalBundle.prescriptions(medicationRequest)[0]).toMatchObject({
-      id: 'med-1',
-      name: 'Atorvastatin 20 mg',
-      status: 'Active',
       intent: 'Order',
-      dosage: 'Take once daily',
-      prescriber: 'Dr. Clinician',
     });
+  });
+
+  test('medications and prescriptions fall back to all entries when intent is absent', () => {
+    const bundle = {
+      resourceType: 'Bundle',
+      entry: [
+        {
+          resource: {
+            resourceType: 'MedicationRequest',
+            id: 'med-no-intent',
+            status: 'active',
+            medicationCodeableConcept: { text: 'Aspirin 81 mg' },
+          },
+        },
+      ],
+    };
+
+    expect(normalizeClinicalBundle.medications(bundle)).toHaveLength(1);
+    expect(normalizeClinicalBundle.prescriptions(bundle)).toHaveLength(1);
+  });
+
+  test('medications excludes orders and prescriptions excludes non-orders when both exist', () => {
+    const bundle = {
+      resourceType: 'Bundle',
+      entry: [
+        {
+          resource: {
+            resourceType: 'MedicationRequest',
+            id: 'plan-1',
+            status: 'active',
+            intent: 'plan',
+            medicationCodeableConcept: { text: 'Med A' },
+          },
+        },
+        {
+          resource: {
+            resourceType: 'MedicationRequest',
+            id: 'order-1',
+            status: 'active',
+            intent: 'order',
+            medicationCodeableConcept: { text: 'Med B' },
+          },
+        },
+        {
+          resource: {
+            resourceType: 'MedicationRequest',
+            id: 'plan-2',
+            status: 'active',
+            intent: 'plan',
+            medicationCodeableConcept: { text: 'Med C' },
+          },
+        },
+      ],
+    };
+
+    const meds = normalizeClinicalBundle.medications(bundle);
+    expect(meds.map((m) => m.id)).toEqual(['plan-1', 'plan-2']);
+
+    const rxs = normalizeClinicalBundle.prescriptions(bundle);
+    expect(rxs.map((r) => r.id)).toEqual(['order-1']);
   });
 
   test('encounters sort reverse chronologically when dates exist', () => {

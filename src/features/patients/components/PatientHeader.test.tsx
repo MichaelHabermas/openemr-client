@@ -18,10 +18,10 @@ const patient: PatientHeaderModel = {
   searchText: 'ada lovelace',
 };
 
-function render(state: LoadState<PatientHeaderModel | null>) {
+function render(state: LoadState<PatientHeaderModel | null>, encounterCount?: number | null) {
   return renderToStaticMarkup(
     <MemoryRouter>
-      <PatientHeader state={state} />
+      <PatientHeader state={state} encounterCount={encounterCount} />
     </MemoryRouter>,
   );
 }
@@ -76,5 +76,30 @@ describe('PatientHeader', () => {
         },
       }),
     ).toContain('Patient was not found.');
+  });
+
+  test('renders dismiss link back to patient list', () => {
+    const html = render({ status: 'success', data: patient, isEmpty: false });
+    expect(html).toContain('×');
+    expect(html).toContain('/patients');
+    expect(html).toContain('Close patient dashboard');
+  });
+
+  test('renders Select Encounter with count when encounterCount is provided', () => {
+    const html = render({ status: 'success', data: patient, isEmpty: false }, 3);
+    expect(html).toContain('Select Encounter (3)');
+    expect(html).toContain('Open Encounter: None');
+  });
+
+  test('hides Select Encounter and shows dash when encounterCount is null', () => {
+    const html = render({ status: 'success', data: patient, isEmpty: false }, null);
+    expect(html).not.toContain('Select Encounter');
+    expect(html).toContain('Open Encounter: —');
+  });
+
+  test('renders Select Encounter (0) when encounterCount is zero', () => {
+    const html = render({ status: 'success', data: patient, isEmpty: false }, 0);
+    expect(html).toContain('Select Encounter (0)');
+    expect(html).toContain('Open Encounter: None');
   });
 });

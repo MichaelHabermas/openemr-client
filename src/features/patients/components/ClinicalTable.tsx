@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { Pencil } from 'lucide-react';
 
 import type { LoadState } from '../types';
@@ -28,13 +29,15 @@ export function ClinicalTable<TRow extends PartialRow>({
   emptyMessage,
   columns,
 }: ClinicalTableProps<TRow>) {
+  const generatedId = useId();
+  const resolvedTitleId = titleId ?? generatedId;
   const count = state.status === 'success' ? state.data.length : null;
   const fallback = renderLoadState(state, emptyMessage);
 
   return (
-    <section aria-labelledby={titleId}>
+    <section aria-labelledby={resolvedTitleId}>
       <h3
-        id={titleId}
+        id={resolvedTitleId}
         className='text-primary border-border mb-1 flex items-center justify-between border-b pb-1 text-sm font-semibold'>
         <span>
           {title}

@@ -30,9 +30,11 @@ The patient list is now a deliberate patient picker. Search is route-based and o
 
 ## Medications Versus Prescriptions
 
-OpenEMR FHIR support for `MedicationStatement` has not been verified in this repo. The first-pass implementation uses `MedicationRequest` for both Medications and Prescriptions. The cards remain visually and model-wise separate: Medications emphasize medication context, dosage, date, and prescriber; Prescriptions also show request intent so order-like information is not hidden.
+OpenEMR FHIR support for `MedicationStatement` has not been verified in this repo. Both Medications and Prescriptions query `MedicationRequest`, which means both BFF endpoints return the same FHIR data. To avoid showing identical rows in both cards, the normalizers filter by the FHIR `intent` field: Medications exclude entries with `intent: 'order'` (those belong in Prescriptions), and Prescriptions prefer entries with `intent: 'order'`. Both filters fall back to showing all entries when no entries match the filter, so data is never hidden if OpenEMR does not populate intent consistently.
 
-This is a known limitation. If live OpenEMR API verification later proves a better source for medication history or prescriptions, the BFF resource mapping and normalizer can change while preserving the existing UI component boundary.
+The cards remain visually and model-wise separate: Medications show medication name and dosage inline; Prescriptions show a table with Drug, Details, Qty, Refills, Written (authored date), and Prescriber.
+
+If live OpenEMR API verification later proves a better source for medication history or prescriptions, the BFF resource mapping and normalizer can change while preserving the existing UI component boundary.
 
 ## Tradeoffs
 
@@ -51,6 +53,7 @@ This is a known limitation. If live OpenEMR API verification later proves a bett
 - OpenEMR's `AllergyIntolerance` resources use FHIR `data-absent-reason` in the `code` field and place the actual substance name (e.g., "Penicillin") in the resource's `text.div` narrative. The normalizer falls back to narrative text extraction when `code` resolves to "Unknown".
 - Practitioner and organization references are displayed from FHIR `display` or `reference`; deeper reference resolution is not implemented. When OpenEMR omits `display` on participant member references, raw FHIR reference strings (e.g., `Practitioner/<uuid>`) are shown.
 - No clinical write workflows are implemented.
+- The access token cookie expires after one hour (`maxAge`). No refresh token flow is implemented; when the token expires, users must re-authenticate. The BFF clears the access token cookie when OpenEMR returns a 401 on clinical requests.
 - No AI-generated clinical summaries, recommendations, or transformations are implemented.
 
 ## Visual Fidelity
@@ -77,7 +80,7 @@ As of 2026-05-09, the E11 epic brought the dashboard into closest possible align
 ### What was preserved from the modern implementation
 
 - **Independent loading and error states**: Each clinical section loads independently, so one failed FHIR resource does not blank the entire dashboard. The original PHP dashboard does not have this behavior.
-- **Semantic HTML with ARIA**: Section landmarks, `aria-labelledby`, `aria-live` for loading states, and `role="alert"` for errors.
+- **Semantic HTML with ARIA**: Section landmarks, `aria-labelledby` linking each clinical section to its heading, `aria-live` for loading states, and `role="alert"` for errors.
 - **Responsive grid**: The 3-column inline section grid collapses to single column on mobile viewports.
 - **Keyboard navigation**: All interactive elements remain keyboard-accessible.
 

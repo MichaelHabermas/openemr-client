@@ -459,16 +459,24 @@ export const normalizeClinicalBundle = {
       const row = normalizeProblem(item);
       return row ? [row] : [];
     }),
-  medications: (bundle: unknown): MedicationRow[] =>
-    bundleEntriesOf<FhirMedicationRequest>(bundle, 'MedicationRequest').flatMap((item) => {
+  medications: (bundle: unknown): MedicationRow[] => {
+    const entries = bundleEntriesOf<FhirMedicationRequest>(bundle, 'MedicationRequest');
+    const nonOrders = entries.filter((item) => item.intent !== 'order');
+    const source = nonOrders.length > 0 ? nonOrders : entries;
+    return source.flatMap((item) => {
       const row = normalizeMedicationRequest(item);
       return row ? [row] : [];
-    }),
-  prescriptions: (bundle: unknown): PrescriptionRow[] =>
-    bundleEntriesOf<FhirMedicationRequest>(bundle, 'MedicationRequest').flatMap((item) => {
+    });
+  },
+  prescriptions: (bundle: unknown): PrescriptionRow[] => {
+    const entries = bundleEntriesOf<FhirMedicationRequest>(bundle, 'MedicationRequest');
+    const orders = entries.filter((item) => item.intent === 'order');
+    const source = orders.length > 0 ? orders : entries;
+    return source.flatMap((item) => {
       const row = normalizePrescription(item);
       return row ? [row] : [];
-    }),
+    });
+  },
   careTeam: (bundle: unknown): CareTeamRow[] =>
     bundleEntriesOf<FhirCareTeam>(bundle, 'CareTeam').flatMap((item) => normalizeCareTeam(item)),
   encounters: (bundle: unknown): EncounterRow[] => {

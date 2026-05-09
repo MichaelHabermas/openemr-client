@@ -5,9 +5,10 @@ import type { LoadState, PatientHeaderModel } from '../types';
 
 interface PatientHeaderProps {
   state: LoadState<PatientHeaderModel | null>;
+  encounterCount?: number | null;
 }
 
-export function PatientHeader({ state }: PatientHeaderProps) {
+export function PatientHeader({ state, encounterCount }: PatientHeaderProps) {
   if (state.status === 'loading' || state.status === 'idle') {
     return (
       <div
@@ -64,14 +65,27 @@ export function PatientHeader({ state }: PatientHeaderProps) {
           <div>
             <h1 id='patient-header-title' className='text-primary text-lg font-bold'>
               {patient.displayName}{' '}
-              <span className='text-muted-foreground font-normal'>({patient.mrnLabel})</span>
+              <span className='text-muted-foreground font-normal'>({patient.mrnLabel})</span>{' '}
+              <Link
+                to='/patients'
+                aria-label='Close patient dashboard'
+                className='text-muted-foreground hover:text-foreground text-base font-normal'>
+                ×
+              </Link>
             </h1>
             <p className='text-muted-foreground text-xs'>{dobParts.join(' | ')}</p>
           </div>
         </div>
         <div className='text-right'>
+          {encounterCount != null && (
+            <span className='border-border text-muted-foreground mr-1 inline-block rounded border px-2 py-0.5 text-xs'>
+              Select Encounter ({encounterCount})
+            </span>
+          )}
           <span className='text-muted-foreground text-xs'>{patient.activeStatusLabel}</span>
-          <p className='text-muted-foreground mt-1 text-xs'>Open Encounter: None</p>
+          <p className='text-muted-foreground mt-1 text-xs'>
+            Open Encounter: {encounterCount == null ? '—' : 'None'}
+          </p>
         </div>
       </div>
     </section>

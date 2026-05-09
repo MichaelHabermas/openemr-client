@@ -329,6 +329,7 @@ describe('createApp routes', () => {
       expect(cookie.value).toBe('fake-access-token');
       expect(cookie.options).toMatchObject({
         httpOnly: true,
+        maxAge: 3600 * 1000,
         sameSite: 'lax',
         path: '/',
       });
@@ -482,7 +483,7 @@ describe('createApp routes', () => {
     [404, 404, 'not_found'],
     [500, 502, 'fhir_unavailable'],
   ] as const)(
-    'GET /api/patients/:patientId/allergies maps upstream FHIR %i to controlled error without clearing cookie',
+    'GET /api/patients/:patientId/allergies maps upstream FHIR %i to controlled error',
     async (upstreamStatus, responseStatus, error) => {
       const { app, services } = createTestApp();
       services.fhir.error = upstreamError(upstreamStatus);
@@ -502,7 +503,15 @@ describe('createApp routes', () => {
           patientId: 'patient-1',
         },
       ]);
-      expect(response.cookies).toEqual([]);
+      if (upstreamStatus === 401) {
+        expect(response.cookies).toContainEqual({
+          name: accessTokenCookieName,
+          options: { path: '/' },
+          cleared: true,
+        });
+      } else {
+        expect(response.cookies).toEqual([]);
+      }
     },
   );
 

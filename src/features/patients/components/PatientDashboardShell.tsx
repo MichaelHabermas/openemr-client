@@ -50,9 +50,11 @@ export function PatientDashboardShell({
   const patientName =
     patient.status === 'success' && patient.data ? patient.data.displayName : null;
 
+  const encounterCount = encounters.status === 'success' ? encounters.data.length : null;
+
   return (
     <div className='space-y-4'>
-      <PatientHeader state={patient} />
+      <PatientHeader state={patient} encounterCount={encounterCount} />
 
       <div>
         <h2 className='text-foreground text-base font-semibold'>

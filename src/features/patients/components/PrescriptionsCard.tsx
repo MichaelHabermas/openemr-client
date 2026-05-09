@@ -10,7 +10,8 @@ const columns: ColumnDef<PrescriptionRow>[] = [
   { header: 'Details', accessor: (rx) => rx.dosage },
   { header: 'Qty', accessor: (rx) => rx.quantity },
   { header: 'Refills', accessor: (rx) => rx.refills },
-  { header: 'Filled', accessor: (rx) => rx.authoredDate },
+  { header: 'Written', accessor: (rx) => rx.authoredDate },
+  { header: 'Prescriber', accessor: (rx) => rx.prescriber },
 ];
 
 export function PrescriptionsCard({ state }: PrescriptionsCardProps) {

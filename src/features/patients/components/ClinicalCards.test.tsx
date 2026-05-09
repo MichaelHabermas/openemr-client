@@ -179,7 +179,8 @@ describe('clinical section cards', () => {
     expect(medicationHtml).toContain('Medications');
     expect(medicationHtml).not.toContain('Intent');
     expect(prescriptionHtml).toContain('Prescriptions');
-    expect(prescriptionHtml).toContain('Filled');
+    expect(prescriptionHtml).toContain('Written');
+    expect(prescriptionHtml).toContain('Dr. Clinician');
     expect(prescriptionHtml).toContain('30');
     expect(prescriptionHtml).toContain('2');
   });
@@ -252,52 +253,54 @@ describe('patient picker rendering', () => {
 describe('PatientDashboardShell', () => {
   test('keeps successful cards visible when one card errors', () => {
     const html = renderToStaticMarkup(
-      <PatientDashboardShell
-        patient={success({
-          id: 'patient-1',
-          displayName: 'Ada Lovelace',
-          birthDateLabel: '4/5/1980',
-          ageLabel: '46',
-          sexLabel: 'Female',
-          mrnLabel: 'MRN-123',
-          activeStatusLabel: 'Active',
-          activeStatusDescription: 'Active patient record',
-          isActive: true,
-          searchText: 'ada lovelace',
-        })}
-        allergies={success<AllergyRow[]>([
-          {
-            id: 'a1',
-            substance: 'Penicillin',
-            clinicalStatus: 'Active',
-            verificationStatus: 'Confirmed',
-            reaction: 'Rash',
-            severity: 'Moderate',
-            recordedDate: '5/1/2026',
-            hasPartialData: false,
-          },
-        ])}
-        problems={{
-          status: 'error',
-          error: { status: 502, message: 'Problems unavailable.', authRequired: false },
-        }}
-        medications={success<MedicationRow[]>([])}
-        prescriptions={success<PrescriptionRow[]>([])}
-        careTeam={success<CareTeamRow[]>([])}
-        encounters={success<EncounterRow[]>([
-          {
-            id: 'e1',
-            type: 'Office Visit',
-            classLabel: 'Ambulatory',
-            status: 'Finished',
-            start: '5/1/2026',
-            end: 'Not recorded',
-            location: 'Clinic',
-            participant: 'Dr. Clinician',
-            hasPartialData: false,
-          },
-        ])}
-      />,
+      <MemoryRouter>
+        <PatientDashboardShell
+          patient={success({
+            id: 'patient-1',
+            displayName: 'Ada Lovelace',
+            birthDateLabel: '4/5/1980',
+            ageLabel: '46',
+            sexLabel: 'Female',
+            mrnLabel: 'MRN-123',
+            activeStatusLabel: 'Active',
+            activeStatusDescription: 'Active patient record',
+            isActive: true,
+            searchText: 'ada lovelace',
+          })}
+          allergies={success<AllergyRow[]>([
+            {
+              id: 'a1',
+              substance: 'Penicillin',
+              clinicalStatus: 'Active',
+              verificationStatus: 'Confirmed',
+              reaction: 'Rash',
+              severity: 'Moderate',
+              recordedDate: '5/1/2026',
+              hasPartialData: false,
+            },
+          ])}
+          problems={{
+            status: 'error',
+            error: { status: 502, message: 'Problems unavailable.', authRequired: false },
+          }}
+          medications={success<MedicationRow[]>([])}
+          prescriptions={success<PrescriptionRow[]>([])}
+          careTeam={success<CareTeamRow[]>([])}
+          encounters={success<EncounterRow[]>([
+            {
+              id: 'e1',
+              type: 'Office Visit',
+              classLabel: 'Ambulatory',
+              status: 'Finished',
+              start: '5/1/2026',
+              end: 'Not recorded',
+              location: 'Clinic',
+              participant: 'Dr. Clinician',
+              hasPartialData: false,
+            },
+          ])}
+        />
+      </MemoryRouter>,
     );
 
     expect(html).toContain('Ada Lovelace');
