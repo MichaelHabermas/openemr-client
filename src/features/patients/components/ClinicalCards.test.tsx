@@ -167,6 +167,8 @@ describe('clinical section cards', () => {
               authoredDate: 'May 1, 2026',
               dosage: 'Take daily',
               prescriber: 'Dr. Clinician',
+              quantity: '30',
+              refills: '2',
               hasPartialData: false,
             },
           ],
@@ -178,6 +180,8 @@ describe('clinical section cards', () => {
     expect(medicationHtml).not.toContain('Intent');
     expect(prescriptionHtml).toContain('Prescriptions');
     expect(prescriptionHtml).toContain('Filled');
+    expect(prescriptionHtml).toContain('30');
+    expect(prescriptionHtml).toContain('2');
   });
 
   test('renders care team fields', () => {
@@ -192,7 +196,8 @@ describe('clinical section cards', () => {
               name: 'Dr. Clinician',
               role: 'Primary care provider',
               status: 'Active',
-              reference: 'Practitioner/1',
+              facility: 'Not recorded',
+              since: 'Not recorded',
               hasPartialData: false,
             },
           ],
@@ -252,6 +257,7 @@ describe('PatientDashboardShell', () => {
           id: 'patient-1',
           displayName: 'Ada Lovelace',
           birthDateLabel: '4/5/1980',
+          ageLabel: '46',
           sexLabel: 'Female',
           mrnLabel: 'MRN-123',
           activeStatusLabel: 'Active',

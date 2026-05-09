@@ -79,6 +79,10 @@ export interface FhirMedicationRequest {
   resourceType: 'MedicationRequest';
   id?: string;
   authoredOn?: string;
+  dispenseRequest?: {
+    quantity?: { value?: number; unit?: string };
+    numberOfRepeatsAllowed?: number;
+  };
   dosageInstruction?: Array<{
     text?: string;
   }>;
@@ -92,8 +96,10 @@ export interface FhirMedicationRequest {
 export interface FhirCareTeam {
   resourceType: 'CareTeam';
   id?: string;
+  managingOrganization?: FhirReference[];
   participant?: Array<{
     member?: FhirReference;
+    period?: FhirPeriod;
     role?: FhirCodeableConcept[];
   }>;
   status?: string;

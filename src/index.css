@@ -23,8 +23,8 @@
   --input: oklch(0.875 0.035 205);
   --ring: oklch(0.55 0.115 215);
   --radius: 0.5rem;
-  --patient-header-bg: oklch(0.25 0.03 240);
-  --patient-header-fg: oklch(0.92 0.01 210);
+  --patient-header-bg: oklch(0.97 0.01 210);
+  --patient-header-fg: oklch(0.25 0.03 220);
 }
 
 .dark {

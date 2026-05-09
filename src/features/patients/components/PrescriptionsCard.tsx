@@ -8,8 +8,8 @@ interface PrescriptionsCardProps {
 const columns: ColumnDef<PrescriptionRow>[] = [
   { header: 'Drug', accessor: (rx) => rx.name },
   { header: 'Details', accessor: (rx) => rx.dosage },
-  { header: 'Qty', accessor: () => '—' },
-  { header: 'Refills', accessor: () => '—' },
+  { header: 'Qty', accessor: (rx) => rx.quantity },
+  { header: 'Refills', accessor: (rx) => rx.refills },
   { header: 'Filled', accessor: (rx) => rx.authoredDate },
 ];
 

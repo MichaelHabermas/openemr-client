@@ -24,6 +24,7 @@ export interface PatientSummary {
 
 export interface PatientHeaderModel extends PatientSummary {
   activeStatusDescription: string;
+  ageLabel: string;
 }
 
 export interface AllergyRow {
@@ -66,6 +67,8 @@ export interface PrescriptionRow {
   authoredDate: string;
   dosage: string;
   prescriber: string;
+  quantity: string;
+  refills: string;
   hasPartialData: boolean;
 }
 
@@ -74,7 +77,8 @@ export interface CareTeamRow {
   name: string;
   role: string;
   status: string;
-  reference: string;
+  facility: string;
+  since: string;
   hasPartialData: boolean;
 }
 

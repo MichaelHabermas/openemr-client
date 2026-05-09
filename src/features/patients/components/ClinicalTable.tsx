@@ -1,3 +1,5 @@
+import { Pencil } from 'lucide-react';
+
 import type { LoadState } from '../types';
 import { renderLoadState } from './renderLoadState';
 
@@ -14,7 +16,6 @@ export interface ColumnDef<TRow> {
 interface ClinicalTableProps<TRow extends PartialRow> {
   title: string;
   titleId?: string;
-  subtitle?: string;
   state: LoadState<TRow[]>;
   emptyMessage: string;
   columns: ColumnDef<TRow>[];
@@ -23,47 +24,54 @@ interface ClinicalTableProps<TRow extends PartialRow> {
 export function ClinicalTable<TRow extends PartialRow>({
   title,
   titleId,
-  subtitle,
   state,
   emptyMessage,
   columns,
 }: ClinicalTableProps<TRow>) {
+  const count = state.status === 'success' ? state.data.length : null;
   const fallback = renderLoadState(state, emptyMessage);
 
   return (
     <section aria-labelledby={titleId}>
       <h3
         id={titleId}
-        className='text-primary border-border mb-1 border-b pb-1 text-sm font-semibold'>
-        {title}
+        className='text-primary border-border mb-1 flex items-center justify-between border-b pb-1 text-sm font-semibold'>
+        <span>
+          {title}
+          {count != null ? ` [${count}]` : ''}
+        </span>
+        <Pencil className='text-muted-foreground h-3.5 w-3.5 opacity-50' aria-hidden='true' />
       </h3>
-      {subtitle ? <p className='text-muted-foreground mb-2 text-xs'>{subtitle}</p> : null}
-      {fallback ?? (
-        <div className='overflow-x-auto'>
-          <table className='w-full border-collapse text-xs'>
-            <thead>
-              <tr className='border-border border-b text-left'>
-                {columns.map((col) => (
-                  <th key={col.header} className='py-1 pr-4 font-semibold'>
-                    {col.header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(state as { data: TRow[] }).data.map((row) => (
-                <tr key={row.id} className='border-border border-b'>
-                  {columns.map((col) => (
-                    <td key={col.header} className='py-1 pr-4'>
-                      {col.accessor(row)}
-                    </td>
+      {fallback ??
+        (() => {
+          if (state.status !== 'success') return null;
+          return (
+            <div className='overflow-x-auto'>
+              <table className='w-full border-collapse text-xs'>
+                <thead>
+                  <tr className='border-border border-b text-left'>
+                    {columns.map((col) => (
+                      <th key={col.header} className='py-1 pr-4 font-semibold'>
+                        {col.header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {state.data.map((row) => (
+                    <tr key={row.id} className='border-border border-b'>
+                      {columns.map((col) => (
+                        <td key={col.header} className='py-1 pr-4'>
+                          {col.accessor(row)}
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
     </section>
   );
 }

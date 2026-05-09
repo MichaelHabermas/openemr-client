@@ -9,6 +9,7 @@ const patient: PatientHeaderModel = {
   id: 'patient-1',
   displayName: 'Ada Lovelace',
   birthDateLabel: 'April 5, 1980',
+  ageLabel: '46',
   sexLabel: 'Female',
   mrnLabel: 'MRN-123',
   activeStatusLabel: 'Active',

@@ -108,6 +108,17 @@ function displayDate(value: unknown, fallback = NOT_RECORDED): string {
   return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+export function computeAge(birthDate: unknown): string {
+  const raw = stringValue(birthDate);
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return '';
+  const [y, m, d] = raw.split('-').map(Number);
+  const now = new Date();
+  let age = now.getFullYear() - y;
+  const monthDiff = now.getMonth() + 1 - m;
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < d)) age--;
+  return age >= 0 ? String(age) : '';
+}
+
 function normalizeStatus(value: unknown, fallback = UNKNOWN): string {
   const raw = displayCodeableConcept(value, stringValue(value) ?? fallback);
   return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : fallback;
@@ -222,6 +233,7 @@ export function normalizePatientHeader(value: unknown): PatientHeaderModel | nul
   return {
     ...summary,
     activeStatusDescription: activeStatus(value).description,
+    ageLabel: computeAge(value.birthDate),
   };
 }
 
@@ -327,6 +339,7 @@ export function normalizeMedicationRequest(value: unknown): MedicationRow | null
 
 export function normalizePrescription(value: unknown): PrescriptionRow | null {
   if (!isResourceType<FhirMedicationRequest>(value, 'MedicationRequest')) return null;
+  const qty = value.dispenseRequest?.quantity?.value;
   const row = {
     id: resourceId(value, 'prescription'),
     name: medicationName(value),
@@ -335,6 +348,11 @@ export function normalizePrescription(value: unknown): PrescriptionRow | null {
     authoredDate: displayDate(value.authoredOn),
     dosage: dosageText(value),
     prescriber: displayReference(value.requester),
+    quantity: qty != null ? String(qty) : NOT_RECORDED,
+    refills:
+      value.dispenseRequest?.numberOfRepeatsAllowed != null
+        ? String(value.dispenseRequest.numberOfRepeatsAllowed)
+        : NOT_RECORDED,
   };
   return {
     ...row,
@@ -345,6 +363,10 @@ export function normalizePrescription(value: unknown): PrescriptionRow | null {
 export function normalizeCareTeam(value: unknown): CareTeamRow[] {
   if (!isResourceType<FhirCareTeam>(value, 'CareTeam')) return [];
   const participants = Array.isArray(value.participant) ? value.participant : [];
+  const facility = Array.isArray(value.managingOrganization)
+    ? displayReference(value.managingOrganization[0], NOT_RECORDED)
+    : NOT_RECORDED;
+
   if (participants.length === 0) {
     return [
       {
@@ -352,7 +374,8 @@ export function normalizeCareTeam(value: unknown): CareTeamRow[] {
         name: NOT_RECORDED,
         role: NOT_RECORDED,
         status: normalizeStatus(value.status),
-        reference: NOT_RECORDED,
+        facility,
+        since: NOT_RECORDED,
         hasPartialData: true,
       },
     ];
@@ -372,7 +395,8 @@ export function normalizeCareTeam(value: unknown): CareTeamRow[] {
       name,
       role: role || NOT_RECORDED,
       status: normalizeStatus(value.status),
-      reference: member?.reference ?? NOT_RECORDED,
+      facility,
+      since: displayDate(participant.period?.start),
       hasPartialData: !hasMeaningfulValue(name),
     };
   });
