@@ -157,6 +157,28 @@ export interface CoverageRow {
   hasPartialData: boolean;
 }
 
+export interface GoalRow {
+  id: string;
+  description: string;
+  lifecycleStatus: string;
+  achievementStatus: string;
+  category: string;
+  startDate: string;
+  targetDate: string;
+  hasPartialData: boolean;
+}
+
+export interface CarePlanRow {
+  id: string;
+  title: string;
+  status: string;
+  intent: string;
+  category: string;
+  period: string;
+  description: string;
+  hasPartialData: boolean;
+}
+
 export interface DiagnosticReportRow {
   id: string;
   name: string;

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { AllergiesCard } from './AllergiesCard';
+import { CarePlansCard } from './CarePlansCard';
 import { CareTeamCard } from './CareTeamCard';
 import { DiagnosticReportsCard } from './DiagnosticReportsCard';
 import { DocumentsCard } from './DocumentsCard';
 import { EncountersCard } from './EncountersCard';
+import { GoalsCard } from './GoalsCard';
 import { ImmunizationsCard } from './ImmunizationsCard';
 import { InsuranceCard } from './InsuranceCard';
 import { LabResultsCard } from './LabResultsCard';
@@ -15,11 +17,13 @@ import { ProceduresCard } from './ProceduresCard';
 import { VitalsCard } from './VitalsCard';
 import type {
   AllergyRow,
+  CarePlanRow,
   CareTeamRow,
   CoverageRow,
   DiagnosticReportRow,
   DocumentRow,
   EncounterRow,
+  GoalRow,
   ImmunizationRow,
   LabRow,
   LoadState,
@@ -45,22 +49,6 @@ const TAB_LABELS = [
 
 type TabLabel = (typeof TAB_LABELS)[number];
 
-const IMPLEMENTED_TABS: ReadonlySet<TabLabel> = new Set([
-  'Dashboard',
-  'History',
-  'Report',
-  'Documents',
-]);
-
-function ComingSoonTab({ label }: { label: string }) {
-  return (
-    <div className='py-8 text-center'>
-      <h3 className='text-foreground text-sm font-semibold'>{label}</h3>
-      <p className='text-muted-foreground mt-1 text-xs'>Coming soon</p>
-    </div>
-  );
-}
-
 interface PatientDashboardShellProps {
   patient: LoadState<PatientHeaderModel | null>;
   allergies: LoadState<AllergyRow[]>;
@@ -76,6 +64,8 @@ interface PatientDashboardShellProps {
   documents: LoadState<DocumentRow[]>;
   coverage: LoadState<CoverageRow[]>;
   diagnosticReports: LoadState<DiagnosticReportRow[]>;
+  goals: LoadState<GoalRow[]>;
+  carePlans: LoadState<CarePlanRow[]>;
 }
 
 export function PatientDashboardShell({
@@ -93,6 +83,8 @@ export function PatientDashboardShell({
   documents,
   coverage,
   diagnosticReports,
+  goals,
+  carePlans,
 }: PatientDashboardShellProps) {
   const patientName =
     patient.status === 'success' && patient.data ? patient.data.displayName : null;
@@ -144,15 +136,25 @@ export function PatientDashboardShell({
           <InsuranceCard state={coverage} />
           <CareTeamCard state={careTeam} />
           <EncountersCard state={encounters} />
+          <GoalsCard state={goals} />
+          <CarePlansCard state={carePlans} />
         </>
       ) : activeTab === 'History' ? (
         <ProceduresCard state={procedures} />
+      ) : activeTab === 'Assessments' ? (
+        <DiagnosticReportsCard state={diagnosticReports} />
       ) : activeTab === 'Report' ? (
         <DiagnosticReportsCard state={diagnosticReports} />
       ) : activeTab === 'Documents' ? (
         <DocumentsCard state={documents} />
-      ) : !IMPLEMENTED_TABS.has(activeTab) ? (
-        <ComingSoonTab label={activeTab} />
+      ) : activeTab === 'Transactions' ? (
+        <EncountersCard state={encounters} />
+      ) : activeTab === 'Issues' ? (
+        <ProblemListCard state={problems} />
+      ) : activeTab === 'Ledger' ? (
+        <InsuranceCard state={coverage} />
+      ) : activeTab === 'External Data' ? (
+        <DocumentsCard state={documents} />
       ) : null}
     </div>
   );

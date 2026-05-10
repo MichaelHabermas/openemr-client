@@ -221,6 +221,46 @@ export interface FhirCoverage {
   }>;
 }
 
+export interface FhirGoal {
+  resourceType: 'Goal';
+  id?: string;
+  lifecycleStatus?: string;
+  achievementStatus?: FhirCodeableConcept;
+  category?: FhirCodeableConcept[];
+  description?: FhirCodeableConcept;
+  subject?: FhirReference;
+  startDate?: string;
+  target?: Array<{
+    measure?: FhirCodeableConcept;
+    detailString?: string;
+    dueDate?: string;
+  }>;
+  statusDate?: string;
+  note?: Array<{ text?: string }>;
+}
+
+export interface FhirCarePlan {
+  resourceType: 'CarePlan';
+  id?: string;
+  status?: string;
+  intent?: string;
+  title?: string;
+  description?: string;
+  category?: FhirCodeableConcept[];
+  subject?: FhirReference;
+  period?: FhirPeriod;
+  careTeam?: FhirReference[];
+  addresses?: FhirReference[];
+  goal?: FhirReference[];
+  activity?: Array<{
+    detail?: {
+      status?: string;
+      code?: FhirCodeableConcept;
+      description?: string;
+    };
+  }>;
+}
+
 export interface FhirDiagnosticReport {
   resourceType: 'DiagnosticReport';
   id?: string;

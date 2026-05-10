@@ -114,6 +114,14 @@ export function fetchPatientDiagnosticReports(patientId: string): Promise<unknow
   return getJson(patientPath(patientId, '/diagnostic-reports'));
 }
 
+export function fetchPatientGoals(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/goals'));
+}
+
+export function fetchPatientCarePlans(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/care-plans'));
+}
+
 export function fetchPractitioner(practitionerId: string): Promise<unknown> {
   return getJson(`/api/practitioners/${encodeURIComponent(practitionerId)}`);
 }

@@ -4,11 +4,13 @@ import type { DependencyList } from 'react';
 import {
   fetchPatient,
   fetchPatientAllergies,
+  fetchPatientCarePlans,
   fetchPatientCareTeam,
   fetchPatientCoverage,
   fetchPatientDiagnosticReports,
   fetchPatientDocuments,
   fetchPatientEncounters,
+  fetchPatientGoals,
   fetchPatientImmunizations,
   fetchPatientLabs,
   fetchPatientMedications,
@@ -28,11 +30,13 @@ import {
 } from './normalizers';
 import type {
   AllergyRow,
+  CarePlanRow,
   CareTeamRow,
   CoverageRow,
   DiagnosticReportRow,
   DocumentRow,
   EncounterRow,
+  GoalRow,
   ImmunizationRow,
   LabRow,
   LoadState,
@@ -130,6 +134,8 @@ type ClinicalRowsByKind = {
   documents: DocumentRow[];
   coverage: CoverageRow[];
   diagnosticReports: DiagnosticReportRow[];
+  goals: GoalRow[];
+  carePlans: CarePlanRow[];
 };
 
 function usePatientAllergies(patientId: string): LoadState<ClinicalRowsByKind['allergies']> {
@@ -269,6 +275,26 @@ function usePatientDiagnosticReports(
   );
 }
 
+function usePatientGoals(patientId: string): LoadState<ClinicalRowsByKind['goals']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.goals(await fetchPatientGoals(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
+function usePatientCarePlans(patientId: string): LoadState<ClinicalRowsByKind['carePlans']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.carePlans(await fetchPatientCarePlans(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
 export function usePractitionerResolver() {
   const cache = useRef<Map<string, string>>(new Map());
   const [names, setNames] = useState<Map<string, string>>(new Map());
@@ -321,5 +347,7 @@ export function usePatientDashboard(patientId: string) {
     documents: usePatientDocuments(patientId),
     coverage: usePatientCoverage(patientId),
     diagnosticReports: usePatientDiagnosticReports(patientId),
+    goals: usePatientGoals(patientId),
+    carePlans: usePatientCarePlans(patientId),
   };
 }

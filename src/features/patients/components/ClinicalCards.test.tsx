@@ -13,11 +13,13 @@ import { PrescriptionsCard } from './PrescriptionsCard';
 import { ProblemListCard } from './ProblemListCard';
 import type {
   AllergyRow,
+  CarePlanRow,
   CareTeamRow,
   CoverageRow,
   DiagnosticReportRow,
   DocumentRow,
   EncounterRow,
+  GoalRow,
   ImmunizationRow,
   LabRow,
   LoadState,
@@ -313,6 +315,8 @@ describe('PatientDashboardShell', () => {
           documents={success<DocumentRow[]>([])}
           coverage={success<CoverageRow[]>([])}
           diagnosticReports={success<DiagnosticReportRow[]>([])}
+          goals={success<GoalRow[]>([])}
+          carePlans={success<CarePlanRow[]>([])}
         />
       </MemoryRouter>,
     );

@@ -1,11 +1,13 @@
 import type {
   FhirAllergyIntolerance,
+  FhirCarePlan,
   FhirCareTeam,
   FhirCondition,
   FhirCoverage,
   FhirDiagnosticReport,
   FhirDocumentReference,
   FhirEncounter,
+  FhirGoal,
   FhirImmunization,
   FhirMedicationRequest,
   FhirObservation,
@@ -16,11 +18,13 @@ import type {
 } from '@/types/fhir';
 import type {
   AllergyRow,
+  CarePlanRow,
   CareTeamRow,
   CoverageRow,
   DiagnosticReportRow,
   DocumentRow,
   EncounterRow,
+  GoalRow,
   ImmunizationRow,
   LabRow,
   MedicationRow,
@@ -676,6 +680,56 @@ export function normalizeDiagnosticReport(value: unknown): DiagnosticReportRow |
   };
 }
 
+export function normalizeGoal(value: unknown): GoalRow | null {
+  if (!isResourceType<FhirGoal>(value, 'Goal')) return null;
+  const category = Array.isArray(value.category)
+    ? value.category
+        .map((item) => displayCodeableConcept(item, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const target = Array.isArray(value.target) ? value.target[0] : undefined;
+  const row = {
+    id: resourceId(value, 'goal'),
+    description: displayCodeableConcept(value.description),
+    lifecycleStatus: normalizeStatus(value.lifecycleStatus),
+    achievementStatus: displayCodeableConcept(value.achievementStatus, NOT_RECORDED),
+    category: category || NOT_RECORDED,
+    startDate: displayDate(value.startDate),
+    targetDate: displayDate(target?.dueDate),
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.description),
+  };
+}
+
+export function normalizeCarePlan(value: unknown): CarePlanRow | null {
+  if (!isResourceType<FhirCarePlan>(value, 'CarePlan')) return null;
+  const category = Array.isArray(value.category)
+    ? value.category
+        .map((item) => displayCodeableConcept(item, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const period = value.period
+    ? `${displayDate(value.period.start)} – ${displayDate(value.period.end)}`
+    : NOT_RECORDED;
+  const row = {
+    id: resourceId(value, 'care-plan'),
+    title: stringValue(value.title) ?? displayCodeableConcept(value.category?.[0], UNKNOWN),
+    status: normalizeStatus(value.status),
+    intent: normalizeStatus(value.intent),
+    category: category || NOT_RECORDED,
+    period,
+    description: stringValue(value.description) ?? NOT_RECORDED,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.title),
+  };
+}
+
 export function normalizePractitionerName(value: unknown): string | null {
   if (!isResourceType<FhirPractitioner>(value, 'Practitioner')) return null;
   const names = Array.isArray(value.name) ? value.name : [];
@@ -777,6 +831,16 @@ export const normalizeClinicalBundle = {
   diagnosticReports: (bundle: unknown): DiagnosticReportRow[] =>
     bundleEntriesOf<FhirDiagnosticReport>(bundle, 'DiagnosticReport').flatMap((item) => {
       const row = normalizeDiagnosticReport(item);
+      return row ? [row] : [];
+    }),
+  goals: (bundle: unknown): GoalRow[] =>
+    bundleEntriesOf<FhirGoal>(bundle, 'Goal').flatMap((item) => {
+      const row = normalizeGoal(item);
+      return row ? [row] : [];
+    }),
+  carePlans: (bundle: unknown): CarePlanRow[] =>
+    bundleEntriesOf<FhirCarePlan>(bundle, 'CarePlan').flatMap((item) => {
+      const row = normalizeCarePlan(item);
       return row ? [row] : [];
     }),
 };

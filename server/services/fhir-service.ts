@@ -15,6 +15,8 @@ const resourceTypesByKey = {
   documents: 'DocumentReference',
   coverage: 'Coverage',
   'diagnostic-reports': 'DiagnosticReport',
+  goals: 'Goal',
+  'care-plans': 'CarePlan',
 } as const;
 
 const categoryByKey: Partial<Record<ClinicalResourceKey, string>> = {
