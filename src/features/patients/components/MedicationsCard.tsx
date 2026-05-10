@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ClinicalSection } from './ClinicalSection';
 import type { LoadState, MedicationRow } from '../types';
 
@@ -5,7 +6,7 @@ interface MedicationsCardProps {
   state: LoadState<MedicationRow[]>;
 }
 
-export function MedicationsCard({ state }: MedicationsCardProps) {
+export const MedicationsCard = memo(function MedicationsCard({ state }: MedicationsCardProps) {
   return (
     <ClinicalSection
       title='Medications'
@@ -20,4 +21,4 @@ export function MedicationsCard({ state }: MedicationsCardProps) {
       }}
     />
   );
-}
+});

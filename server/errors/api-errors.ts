@@ -4,6 +4,7 @@ export const apiErrorCodes = {
   forbidden: 'forbidden',
   notFound: 'not_found',
   notAuthenticated: 'not_authenticated',
+  rateLimited: 'rate_limited',
   upstreamAuthFailed: 'upstream_auth_failed',
 } as const;
 

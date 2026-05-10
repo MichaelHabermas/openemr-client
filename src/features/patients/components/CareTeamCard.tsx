@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { CareTeamRow, LoadState } from '../types';
 
@@ -16,7 +17,7 @@ const columns: ColumnDef<CareTeamRow>[] = [
   { header: 'Remove', accessor: () => '—' },
 ];
 
-export function CareTeamCard({ state }: CareTeamCardProps) {
+export const CareTeamCard = memo(function CareTeamCard({ state }: CareTeamCardProps) {
   return (
     <ClinicalTable
       title='Care Team'
@@ -25,4 +26,4 @@ export function CareTeamCard({ state }: CareTeamCardProps) {
       columns={columns}
     />
   );
-}
+});

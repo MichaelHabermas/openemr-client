@@ -39,7 +39,7 @@ describe('patient feature API', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('/api/patients', {
       credentials: 'include',
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
     });
   });
 

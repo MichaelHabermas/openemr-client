@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 
 import { StatusLabel } from './StatusLabel';
@@ -7,7 +8,7 @@ interface PatientListItemProps {
   patient: PatientSummary;
 }
 
-export function PatientListItem({ patient }: PatientListItemProps) {
+export const PatientListItem = memo(function PatientListItem({ patient }: PatientListItemProps) {
   const statusTone =
     patient.isActive === true ? 'active' : patient.isActive === false ? 'inactive' : 'neutral';
 
@@ -38,4 +39,4 @@ export function PatientListItem({ patient }: PatientListItemProps) {
       </Link>
     </li>
   );
-}
+});

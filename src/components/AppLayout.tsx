@@ -1,8 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { OpenEmrNavBar } from './OpenEmrNavBar';
 
 export function AppLayout() {
   return (
     <div className='flex min-h-dvh flex-col'>
+      <OpenEmrNavBar />
       <a
         href='#main-content'
         className='focus:bg-card focus:text-foreground sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:px-3 focus:py-2 focus:text-sm focus:shadow-md'>

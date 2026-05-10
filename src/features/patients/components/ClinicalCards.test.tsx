@@ -179,8 +179,8 @@ describe('clinical section cards', () => {
     expect(medicationHtml).toContain('Medications');
     expect(medicationHtml).not.toContain('Intent');
     expect(prescriptionHtml).toContain('Prescriptions');
-    expect(prescriptionHtml).toContain('Written');
-    expect(prescriptionHtml).toContain('Dr. Clinician');
+    expect(prescriptionHtml).toContain('Filled');
+    expect(prescriptionHtml).not.toContain('Prescriber');
     expect(prescriptionHtml).toContain('30');
     expect(prescriptionHtml).toContain('2');
   });
@@ -216,7 +216,7 @@ describe('patient picker rendering', () => {
   const patient: PatientSummary = {
     id: 'patient/id with spaces',
     displayName: 'Ada Lovelace',
-    birthDateLabel: '4/5/1980',
+    birthDateLabel: '1980-04-05',
     sexLabel: 'Female',
     mrnLabel: 'MRN-123',
     activeStatusLabel: 'Active',
@@ -245,7 +245,7 @@ describe('patient picker rendering', () => {
     );
 
     expect(html).toContain('Open dashboard for Ada Lovelace');
-    expect(html).toContain('DOB 4/5/1980');
+    expect(html).toContain('DOB 1980-04-05');
     expect(html).toContain('MRN MRN-123');
   });
 });
@@ -258,7 +258,7 @@ describe('PatientDashboardShell', () => {
           patient={success({
             id: 'patient-1',
             displayName: 'Ada Lovelace',
-            birthDateLabel: '4/5/1980',
+            birthDateLabel: '1980-04-05',
             ageLabel: '46',
             sexLabel: 'Female',
             mrnLabel: 'MRN-123',

@@ -51,7 +51,6 @@ export function PatientHeader({ state, encounterCount }: PatientHeaderProps) {
   const patient = state.data;
   const dobParts = [`DOB: ${patient.birthDateLabel}`];
   if (patient.ageLabel) dobParts.push(`Age: ${patient.ageLabel}`);
-  dobParts.push(patient.sexLabel);
 
   return (
     <section
@@ -73,7 +72,7 @@ export function PatientHeader({ state, encounterCount }: PatientHeaderProps) {
                 ×
               </Link>
             </h1>
-            <p className='text-muted-foreground text-xs'>{dobParts.join(' | ')}</p>
+            <p className='text-muted-foreground text-xs'>{dobParts.join(' ')}</p>
           </div>
         </div>
         <div className='text-right'>

@@ -1,12 +1,5 @@
 /** Partial FHIR shapes for dashboard display. This is not a full FHIR SDK. */
 
-export interface FhirBundle<TResource = unknown> {
-  resourceType: 'Bundle';
-  entry?: Array<{
-    resource?: TResource;
-  }>;
-}
-
 export interface FhirCoding {
   system?: string;
   code?: string;

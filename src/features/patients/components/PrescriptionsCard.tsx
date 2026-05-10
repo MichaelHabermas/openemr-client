@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { LoadState, PrescriptionRow } from '../types';
 
@@ -10,11 +11,12 @@ const columns: ColumnDef<PrescriptionRow>[] = [
   { header: 'Details', accessor: (rx) => rx.dosage },
   { header: 'Qty', accessor: (rx) => rx.quantity },
   { header: 'Refills', accessor: (rx) => rx.refills },
-  { header: 'Written', accessor: (rx) => rx.authoredDate },
-  { header: 'Prescriber', accessor: (rx) => rx.prescriber },
+  { header: 'Filled', accessor: (rx) => rx.authoredDate },
 ];
 
-export function PrescriptionsCard({ state }: PrescriptionsCardProps) {
+export const PrescriptionsCard = memo(function PrescriptionsCard({
+  state,
+}: PrescriptionsCardProps) {
   return (
     <ClinicalTable
       title='Prescriptions'
@@ -23,4 +25,4 @@ export function PrescriptionsCard({ state }: PrescriptionsCardProps) {
       columns={columns}
     />
   );
-}
+});

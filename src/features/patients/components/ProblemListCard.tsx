@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ClinicalSection } from './ClinicalSection';
 import type { LoadState, ProblemRow } from '../types';
 
@@ -5,7 +6,7 @@ interface ProblemListCardProps {
   state: LoadState<ProblemRow[]>;
 }
 
-export function ProblemListCard({ state }: ProblemListCardProps) {
+export const ProblemListCard = memo(function ProblemListCard({ state }: ProblemListCardProps) {
   return (
     <ClinicalSection
       title='Medical Problems'
@@ -14,4 +15,4 @@ export function ProblemListCard({ state }: ProblemListCardProps) {
       renderRow={(problem) => <span className='text-xs'>{problem.name}</span>}
     />
   );
-}
+});

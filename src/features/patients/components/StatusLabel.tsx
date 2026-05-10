@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 
 interface StatusLabelProps {
@@ -5,7 +6,10 @@ interface StatusLabelProps {
   tone?: 'neutral' | 'active' | 'inactive';
 }
 
-export function StatusLabel({ label, tone = 'neutral' }: StatusLabelProps) {
+export const StatusLabel = memo(function StatusLabel({
+  label,
+  tone = 'neutral',
+}: StatusLabelProps) {
   return (
     <span
       className={cn(
@@ -17,4 +21,4 @@ export function StatusLabel({ label, tone = 'neutral' }: StatusLabelProps) {
       {label}
     </span>
   );
-}
+});

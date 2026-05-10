@@ -1,9 +1,12 @@
-const jsonHeaders = { Accept: 'application/json' } as const;
+const defaultHeaders = {
+  Accept: 'application/json',
+  'X-Requested-With': 'XMLHttpRequest',
+} as const;
 
 export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
   return fetch(input, {
     ...init,
     credentials: 'include',
-    headers: { ...jsonHeaders, ...init?.headers },
+    headers: { ...defaultHeaders, ...init?.headers },
   });
 }

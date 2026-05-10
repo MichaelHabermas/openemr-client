@@ -31,8 +31,8 @@ describe('PatientHeader', () => {
     const html = render({ status: 'success', data: patient, isEmpty: false });
 
     expect(html).toContain('Ada Lovelace');
-    expect(html).toContain('April 5, 1980');
-    expect(html).toContain('Female');
+    expect(html).toContain('DOB: April 5, 1980 Age: 46');
+    expect(html).not.toContain('Female');
     expect(html).toContain('MRN-123');
     expect(html).toContain('Active');
   });

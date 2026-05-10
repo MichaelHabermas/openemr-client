@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   bundleEntriesOf,
   displayCodeableConcept,
+  displayCoding,
   displayReference,
   normalizeClinicalBundle,
   normalizeEncounter,
@@ -71,7 +72,7 @@ describe('patient normalization', () => {
       id: 'patient-1',
       displayName: 'Ada Lovelace',
       sexLabel: 'Female',
-      birthDateLabel: '4/5/1980',
+      birthDateLabel: '1980-04-05',
       mrnLabel: 'MRN-123',
       activeStatusLabel: 'Inactive',
       activeStatusDescription: 'Inactive patient record',
@@ -202,7 +203,7 @@ describe('clinical normalization', () => {
     });
     const prescriptions = normalizeClinicalBundle.prescriptions({
       resourceType: 'Bundle',
-      entry: [{ resource: { resourceType: 'MedicationRequest', id: 'rx1' } }],
+      entry: [{ resource: { resourceType: 'MedicationRequest', id: 'rx1', intent: 'order' } }],
     });
     const careTeam = normalizeClinicalBundle.careTeam({
       resourceType: 'Bundle',
@@ -219,7 +220,7 @@ describe('clinical normalization', () => {
     expect(medications[0]).toMatchObject({ name: 'Unknown', hasPartialData: true });
     expect(prescriptions[0]).toMatchObject({
       name: 'Unknown',
-      intent: 'Unknown',
+      intent: 'Order',
       hasPartialData: true,
     });
     expect(careTeam[0]).toMatchObject({ name: 'Not recorded', hasPartialData: true });
@@ -268,7 +269,7 @@ describe('clinical normalization', () => {
     });
   });
 
-  test('medications and prescriptions fall back to all entries when intent is absent', () => {
+  test('medications fall back to all entries when intent is absent', () => {
     const bundle = {
       resourceType: 'Bundle',
       entry: [
@@ -284,7 +285,25 @@ describe('clinical normalization', () => {
     };
 
     expect(normalizeClinicalBundle.medications(bundle)).toHaveLength(1);
-    expect(normalizeClinicalBundle.prescriptions(bundle)).toHaveLength(1);
+  });
+
+  test('prescriptions returns empty array when no intent:order entries exist', () => {
+    const bundle = {
+      resourceType: 'Bundle',
+      entry: [
+        {
+          resource: {
+            resourceType: 'MedicationRequest',
+            id: 'med-no-intent',
+            status: 'active',
+            intent: 'plan',
+            medicationCodeableConcept: { text: 'Aspirin 81 mg' },
+          },
+        },
+      ],
+    };
+
+    expect(normalizeClinicalBundle.prescriptions(bundle)).toEqual([]);
   });
 
   test('medications excludes orders and prescriptions excludes non-orders when both exist', () => {
@@ -383,8 +402,36 @@ describe('clinical normalization', () => {
     ).toMatchObject({
       type: 'Office Visit',
       classLabel: 'Ambulatory',
-      start: '5/1/2026',
+      start: '2026-05-01',
     });
+  });
+
+  test('displayCoding returns display from a Coding object', () => {
+    expect(displayCoding({ display: 'ambulatory', code: 'AMB' })).toBe('ambulatory');
+  });
+
+  test('displayCoding falls back to code', () => {
+    expect(displayCoding({ code: 'AMB' })).toBe('AMB');
+  });
+
+  test('displayCoding falls back to code when display is empty string', () => {
+    expect(displayCoding({ display: '', code: 'AMB' })).toBe('AMB');
+    expect(displayCoding({ display: '   ', code: 'AMB' })).toBe('AMB');
+  });
+
+  test('displayCoding returns fallback for non-object', () => {
+    expect(displayCoding(null)).toBe('Unknown');
+  });
+
+  test('normalizeEncounter formats datetime strings via toLocaleString', () => {
+    const enc = normalizeEncounter({
+      resourceType: 'Encounter',
+      id: 'enc-dt',
+      period: { start: '2024-06-15T14:30:00Z' },
+    });
+    expect(enc?.start).toBeDefined();
+    expect(enc!.start).not.toBe('2024-06-15T14:30:00Z');
+    expect(enc!.start).not.toBe('Unknown');
   });
 
   test('normalizeEncounter handles malformed optional fields without throwing', () => {

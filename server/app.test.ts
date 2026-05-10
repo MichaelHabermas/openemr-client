@@ -113,23 +113,23 @@ function createTestApp() {
   return { app, services };
 }
 
-function getRouteHandler(
+function getRouteHandlers(
   app: express.Express,
   method: string,
   path: string,
-): express.RequestHandler {
+): express.RequestHandler[] {
   const layers = app.router?.stack as RouteLayer[] | undefined;
   const layer = layers?.find(
     (candidate) =>
       candidate.route?.path === path && candidate.route.methods[method.toLowerCase()] === true,
   );
-  const handler = layer?.route?.stack[0]?.handle;
+  const handlers = layer?.route?.stack.map((s) => s.handle);
 
-  if (!handler) {
+  if (!handlers || handlers.length === 0) {
     throw new Error(`Route not found: ${method.toUpperCase()} ${path}`);
   }
 
-  return handler;
+  return handlers;
 }
 
 async function callRoute(
@@ -139,20 +139,21 @@ async function callRoute(
   request: Partial<express.Request> = {},
 ) {
   const response = createResponse();
-  const handler = getRouteHandler(app, method, path);
+  const handlers = getRouteHandlers(app, method, path);
+  const req = {
+    params: {},
+    query: {},
+    cookies: {},
+    ...request,
+  } as express.Request;
 
-  await handler(
-    {
-      params: {},
-      query: {},
-      cookies: {},
-      ...request,
-    } as express.Request,
-    response as unknown as express.Response,
-    () => {
-      throw new Error(`Unexpected next() call from ${method.toUpperCase()} ${path}`);
-    },
-  );
+  for (const handler of handlers) {
+    let nextCalled = false;
+    await handler(req, response as unknown as express.Response, () => {
+      nextCalled = true;
+    });
+    if (!nextCalled) break;
+  }
 
   return response;
 }

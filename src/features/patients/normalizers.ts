@@ -86,6 +86,11 @@ export function displayCodeableConcept(value: unknown, fallback = UNKNOWN): stri
   return fallback;
 }
 
+export function displayCoding(value: unknown, fallback = UNKNOWN): string {
+  if (!isRecord(value)) return fallback;
+  return stringValue(value.display) ?? stringValue(value.code) ?? fallback;
+}
+
 export function displayReference(value: unknown, fallback = NOT_RECORDED): string {
   if (!isRecord(value)) return fallback;
   return stringValue(value.display) ?? stringValue(value.reference) ?? fallback;
@@ -95,12 +100,6 @@ function displayDate(value: unknown, fallback = NOT_RECORDED): string {
   const raw = stringValue(value);
   if (!raw) return fallback;
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    const [year, month, day] = raw.split('-');
-    const monthNumber = Number(month);
-    const dayNumber = Number(day);
-    if (monthNumber >= 1 && monthNumber <= 12 && dayNumber >= 1 && dayNumber <= 31) {
-      return `${monthNumber}/${dayNumber}/${year}`;
-    }
     return raw;
   }
   const date = new Date(raw);
@@ -434,17 +433,17 @@ export function normalizeEncounter(value: unknown): EncounterRow | null {
         .filter(Boolean)
         .join(', ')
     : '';
+  const start = displayDate(value.period?.start);
   return {
     id: resourceId(value, 'encounter'),
     type: type || UNKNOWN,
-    classLabel: displayCodeableConcept(value.class),
+    classLabel: displayCoding(value.class),
     status: normalizeStatus(value.status),
-    start: displayDate(value.period?.start),
+    start,
     end: displayDate(value.period?.end),
     location: location || NOT_RECORDED,
     participant: participant || NOT_RECORDED,
-    hasPartialData:
-      !hasMeaningfulValue(type || UNKNOWN) || !hasMeaningfulValue(displayDate(value.period?.start)),
+    hasPartialData: !hasMeaningfulValue(type || UNKNOWN) || !hasMeaningfulValue(start),
   };
 }
 
@@ -471,8 +470,7 @@ export const normalizeClinicalBundle = {
   prescriptions: (bundle: unknown): PrescriptionRow[] => {
     const entries = bundleEntriesOf<FhirMedicationRequest>(bundle, 'MedicationRequest');
     const orders = entries.filter((item) => item.intent === 'order');
-    const source = orders.length > 0 ? orders : entries;
-    return source.flatMap((item) => {
+    return orders.flatMap((item) => {
       const row = normalizePrescription(item);
       return row ? [row] : [];
     });

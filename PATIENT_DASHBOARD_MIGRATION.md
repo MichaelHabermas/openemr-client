@@ -30,11 +30,27 @@ The patient list is now a deliberate patient picker. Search is route-based and o
 
 ## Medications Versus Prescriptions
 
-OpenEMR FHIR support for `MedicationStatement` has not been verified in this repo. Both Medications and Prescriptions query `MedicationRequest`, which means both BFF endpoints return the same FHIR data. To avoid showing identical rows in both cards, the normalizers filter by the FHIR `intent` field: Medications exclude entries with `intent: 'order'` (those belong in Prescriptions), and Prescriptions prefer entries with `intent: 'order'`. Both filters fall back to showing all entries when no entries match the filter, so data is never hidden if OpenEMR does not populate intent consistently.
+OpenEMR FHIR support for `MedicationStatement` has not been verified in this repo. Both Medications and Prescriptions query `MedicationRequest`, which means both BFF endpoints return the same FHIR data. To avoid showing identical rows in both cards, the normalizers filter by the FHIR `intent` field: Medications exclude entries with `intent: 'order'` (those belong in Prescriptions), and Prescriptions prefer entries with `intent: 'order'`. Medications fall back to showing all entries when no entries match the filter. Prescriptions return an empty list when no `intent: 'order'` entries exist, avoiding duplicate rows with the Medications card.
 
-The cards remain visually and model-wise separate: Medications show medication name and dosage inline; Prescriptions show a table with Drug, Details, Qty, Refills, Written (authored date), and Prescriber.
+The cards remain visually and model-wise separate: Medications show medication name and dosage inline; Prescriptions show a table with Drug, Details, Qty, Refills, and Filled (authored date).
 
 If live OpenEMR API verification later proves a better source for medication history or prescriptions, the BFF resource mapping and normalizer can change while preserving the existing UI component boundary.
+
+## Security Middleware
+
+The BFF applies a defense-in-depth middleware chain on all routes, wired in `server/app.ts` after body parsing:
+
+1. **Security headers** (`server/middleware/security-headers.ts`) — Sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, a baseline `Content-Security-Policy`, and `Strict-Transport-Security` in production.
+2. **Rate limiting** (`server/middleware/rate-limit.ts`) — 100 requests per 15-minute window per IP via `express-rate-limit`. Returns 429 with `rate_limited` error code.
+3. **CSRF custom-header check** (`server/middleware/require-custom-header.ts`) — Requires `X-Requested-With` header on mutation methods (POST, PUT, DELETE, PATCH). The frontend sends `X-Requested-With: XMLHttpRequest` on all requests via `src/lib/api/http.ts`.
+4. **Patient ID validation** (`server/middleware/validate-patient-id.ts`) — Applied per-route on `/api/patients/:patientId/*`. Validates the `patientId` param against `^[a-zA-Z0-9._-]{1,64}$` and returns 400 on failure.
+
+Error logging in `protectedFhirRoute` was tightened to log only `{ operation, status, error }` — upstream FHIR response bodies are no longer logged to prevent PHI leakage.
+
+## Architecture Decisions
+
+- **Raw FHIR forwarding**: The BFF proxies FHIR responses as-is without server-side transformation. All normalization happens client-side in `src/features/patients/normalizers.ts`, which parses from `unknown` through typed FHIR structures to UI models. This keeps the BFF thin and testable, and ensures the normalizer test suite validates the full parsing path.
+- **No refresh token rotation**: The access token cookie expires after one hour. When it expires, users re-authenticate. Implementing silent refresh token rotation is deferred as future work.
 
 ## Tradeoffs
 
@@ -62,12 +78,12 @@ As of 2026-05-09, the E11 epic brought the dashboard into closest possible align
 
 ### What was aligned
 
-- **Layout**: 4-zone structure matching original — dark header bar, dashboard title with static tab bar, 3-column inline sections (Allergies, Medical Problems, Medications), full-width tables below.
+- **Layout**: 4-zone structure matching original — OpenEMR nav bar (`OpenEmrNavBar` component), dashboard title with static tab bar, 3-column inline sections (Allergies, Medical Problems, Medications), full-width tables below.
 - **Density**: Tightened spacing from `space-y-6` to `space-y-2`/`space-y-4`, `text-xs` throughout clinical sections.
 - **Section headers**: Blue underlined text matching original style, replacing Card wrappers with shadows and borders.
 - **Tables**: HTML `<table>` elements for Prescriptions, Care Team, and Encounter History, matching original PHP table rendering.
 - **Inline text**: Allergies show "substance (severity)", Problems show just the condition name, Medications show "name dosage" — no colored status badges in clinical sections.
-- **Patient header**: Light background with avatar icon, inline name and MRN, DOB/Age/Sex on second line, matching original PHP dashboard styling.
+- **Patient header**: Light background with avatar icon, inline name and MRN, DOB and Age on second line (ISO `YYYY-MM-DD` format), matching original PHP dashboard styling.
 - **Tab bar**: Static Dashboard, History, Assessments, Report, Documents, Transactions, Issues, Ledger, External Data tabs matching original navigation structure.
 
 ### Known deviations

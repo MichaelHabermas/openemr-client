@@ -12,10 +12,13 @@ import {
   readAccessTokenCookie,
   setAccessTokenCookie,
 } from './auth/session';
-import axios from 'axios';
 import type { AppConfig } from './config';
 import { apiErrorCodes } from './errors/api-errors';
 import { mapFhirError } from './errors/fhir-error-mapper';
+import { rateLimiter } from './middleware/rate-limit';
+import { requireCustomHeader } from './middleware/require-custom-header';
+import { securityHeaders } from './middleware/security-headers';
+import { validatePatientId } from './middleware/validate-patient-id';
 import type { ClinicalResourceKey, FhirService } from './services/fhir-service';
 import type { OAuthService } from './services/oauth-service';
 
@@ -30,20 +33,6 @@ export interface CreateAppOptions {
 }
 
 type ProtectedFhirRequestHandler = (accessToken: string, req: express.Request) => Promise<unknown>;
-
-function fhirUpstreamDetail(error: unknown): string | undefined {
-  if (axios.isAxiosError(error) && error.response?.data) {
-    const d = error.response.data;
-    if (typeof d === 'string') return d.slice(0, 200);
-    try {
-      return JSON.stringify(d).slice(0, 200);
-    } catch (error) {
-      console.error('FHIR upstream detail failed', { error });
-      return undefined;
-    }
-  }
-  return undefined;
-}
 
 function firstQueryString(value: express.Request['query'][string]): string | undefined {
   if (typeof value === 'string') return value;
@@ -75,12 +64,10 @@ function protectedFhirRoute(
       res.json(payload);
     } catch (error) {
       const mapped = mapFhirError(error);
-      const upstream = fhirUpstreamDetail(error);
       console.error('FHIR proxy failed', {
         operation,
         status: mapped.status,
         error: mapped.body.error,
-        upstream,
       });
       if (mapped.status === 401) {
         clearAccessTokenCookie(res);
@@ -101,6 +88,9 @@ export function createApp({ config, services }: CreateAppOptions) {
   );
   app.use(cookieParser());
   app.use(express.json());
+  app.use(securityHeaders(process.env.NODE_ENV === 'production'));
+  app.use(rateLimiter());
+  app.use(requireCustomHeader());
 
   app.get('/login', (_req, res) => {
     const state = createOAuthStateCookie(res);
@@ -151,8 +141,11 @@ export function createApp({ config, services }: CreateAppOptions) {
     protectedFhirRoute('fetchPatientBundle', (token) => services.fhir.fetchPatientBundle(token)),
   );
 
+  const validatePid = validatePatientId();
+
   app.get(
     '/api/patients/:patientId',
+    validatePid,
     protectedFhirRoute('fetchPatient', (token, req) =>
       services.fhir.fetchPatient(token, patientIdParam(req)),
     ),
@@ -164,17 +157,21 @@ export function createApp({ config, services }: CreateAppOptions) {
     );
   }
 
-  app.get('/api/patients/:patientId/allergies', patientClinicalRoute('allergies'));
+  app.get('/api/patients/:patientId/allergies', validatePid, patientClinicalRoute('allergies'));
 
-  app.get('/api/patients/:patientId/problems', patientClinicalRoute('problems'));
+  app.get('/api/patients/:patientId/problems', validatePid, patientClinicalRoute('problems'));
 
-  app.get('/api/patients/:patientId/medications', patientClinicalRoute('medications'));
+  app.get('/api/patients/:patientId/medications', validatePid, patientClinicalRoute('medications'));
 
-  app.get('/api/patients/:patientId/prescriptions', patientClinicalRoute('prescriptions'));
+  app.get(
+    '/api/patients/:patientId/prescriptions',
+    validatePid,
+    patientClinicalRoute('prescriptions'),
+  );
 
-  app.get('/api/patients/:patientId/care-team', patientClinicalRoute('care-team'));
+  app.get('/api/patients/:patientId/care-team', validatePid, patientClinicalRoute('care-team'));
 
-  app.get('/api/patients/:patientId/encounters', patientClinicalRoute('encounters'));
+  app.get('/api/patients/:patientId/encounters', validatePid, patientClinicalRoute('encounters'));
 
   return app;
 }
