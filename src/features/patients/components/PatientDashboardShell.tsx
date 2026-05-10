@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AllergiesCard } from './AllergiesCard';
 import { CareTeamCard } from './CareTeamCard';
 import { EncountersCard } from './EncountersCard';
@@ -32,6 +33,19 @@ const TAB_LABELS = [
   'External Data',
 ] as const;
 
+type TabLabel = (typeof TAB_LABELS)[number];
+
+const IMPLEMENTED_TABS: ReadonlySet<TabLabel> = new Set(['Dashboard']);
+
+function ComingSoonTab({ label }: { label: string }) {
+  return (
+    <div className='py-8 text-center'>
+      <h3 className='text-foreground text-sm font-semibold'>{label}</h3>
+      <p className='text-muted-foreground mt-1 text-xs'>Coming soon</p>
+    </div>
+  );
+}
+
 interface PatientDashboardShellProps {
   patient: LoadState<PatientHeaderModel | null>;
   allergies: LoadState<AllergyRow[]>;
@@ -59,6 +73,7 @@ export function PatientDashboardShell({
     patient.status === 'success' && patient.data ? patient.data.displayName : null;
 
   const encounterCount = encounters.status === 'success' ? encounters.data.length : null;
+  const [activeTab, setActiveTab] = useState<TabLabel>('Dashboard');
 
   return (
     <div className='space-y-4'>
@@ -72,32 +87,40 @@ export function PatientDashboardShell({
           <ul className='flex text-xs'>
             {TAB_LABELS.map((label) => (
               <li key={label}>
-                <span
+                <button
+                  type='button'
+                  onClick={() => setActiveTab(label)}
                   className={
-                    label === 'Dashboard'
+                    label === activeTab
                       ? 'border-primary text-primary inline-block border-b-2 px-3 py-1 font-semibold'
-                      : 'text-muted-foreground inline-block px-3 py-1'
+                      : 'text-muted-foreground inline-block px-3 py-1 hover:text-foreground'
                   }
-                  aria-current={label === 'Dashboard' ? 'page' : undefined}>
+                  aria-current={label === activeTab ? 'page' : undefined}>
                   {label}
-                </span>
+                </button>
               </li>
             ))}
           </ul>
         </nav>
       </div>
 
-      <div className='grid grid-cols-1 gap-x-6 md:grid-cols-3'>
-        <AllergiesCard state={allergies} />
-        <ProblemListCard state={problems} />
-        <MedicationsCard state={medications} />
-      </div>
+      {activeTab === 'Dashboard' ? (
+        <>
+          <div className='grid grid-cols-1 gap-x-6 md:grid-cols-3'>
+            <AllergiesCard state={allergies} />
+            <ProblemListCard state={problems} />
+            <MedicationsCard state={medications} />
+          </div>
 
-      <PrescriptionsCard state={prescriptions} />
-      <VitalsCard state={vitals} />
-      <ImmunizationsCard state={immunizations} />
-      <CareTeamCard state={careTeam} />
-      <EncountersCard state={encounters} />
+          <PrescriptionsCard state={prescriptions} />
+          <VitalsCard state={vitals} />
+          <ImmunizationsCard state={immunizations} />
+          <CareTeamCard state={careTeam} />
+          <EncountersCard state={encounters} />
+        </>
+      ) : !IMPLEMENTED_TABS.has(activeTab) ? (
+        <ComingSoonTab label={activeTab} />
+      ) : null}
     </div>
   );
 }
