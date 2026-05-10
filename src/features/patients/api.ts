@@ -122,6 +122,18 @@ export function fetchPatientCarePlans(patientId: string): Promise<unknown> {
   return getJson(patientPath(patientId, '/care-plans'));
 }
 
+export function fetchPatientSocialHistory(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/social-history'));
+}
+
+export function fetchPatientFamilyHistory(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/family-history'));
+}
+
+export function fetchPatientAppointments(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/appointments'));
+}
+
 export function fetchPractitioner(practitionerId: string): Promise<unknown> {
   return getJson(`/api/practitioners/${encodeURIComponent(practitionerId)}`);
 }

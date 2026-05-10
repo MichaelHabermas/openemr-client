@@ -1,5 +1,6 @@
 import type {
   FhirAllergyIntolerance,
+  FhirAppointment,
   FhirCarePlan,
   FhirCareTeam,
   FhirCondition,
@@ -7,6 +8,7 @@ import type {
   FhirDiagnosticReport,
   FhirDocumentReference,
   FhirEncounter,
+  FhirFamilyMemberHistory,
   FhirGoal,
   FhirImmunization,
   FhirMedicationRequest,
@@ -18,12 +20,14 @@ import type {
 } from '@/types/fhir';
 import type {
   AllergyRow,
+  AppointmentRow,
   CarePlanRow,
   CareTeamRow,
   CoverageRow,
   DiagnosticReportRow,
   DocumentRow,
   EncounterRow,
+  FamilyHistoryRow,
   GoalRow,
   ImmunizationRow,
   LabRow,
@@ -33,6 +37,7 @@ import type {
   PrescriptionRow,
   ProblemRow,
   ProcedureRow,
+  SocialHistoryRow,
   VitalRow,
 } from './types';
 
@@ -730,6 +735,93 @@ export function normalizeCarePlan(value: unknown): CarePlanRow | null {
   };
 }
 
+export function normalizeSocialHistory(value: unknown): SocialHistoryRow | null {
+  if (!isResourceType<FhirObservation>(value, 'Observation')) return null;
+  const row = {
+    id: resourceId(value, 'social-history'),
+    name: displayCodeableConcept(value.code),
+    value: observationValue(value),
+    date: displayDate(value.effectiveDateTime ?? value.issued),
+    status: normalizeStatus(value.status),
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.name) || !hasMeaningfulValue(row.value),
+  };
+}
+
+export function normalizeFamilyHistory(value: unknown): FamilyHistoryRow[] {
+  if (!isResourceType<FhirFamilyMemberHistory>(value, 'FamilyMemberHistory')) return [];
+  const conditions = Array.isArray(value.condition) ? value.condition : [];
+  const relationship = displayCodeableConcept(value.relationship);
+
+  if (conditions.length === 0) {
+    return [
+      {
+        id: resourceId(value, 'family-history'),
+        relationship,
+        condition: NOT_RECORDED,
+        outcome: NOT_RECORDED,
+        onset: NOT_RECORDED,
+        status: normalizeStatus(value.status),
+        hasPartialData: true,
+      },
+    ];
+  }
+
+  return conditions.map((cond, index) => {
+    const onset =
+      cond.onsetAge?.value != null
+        ? `${cond.onsetAge.value} ${cond.onsetAge.unit ?? 'years'}`.trim()
+        : (stringValue(cond.onsetString) ?? NOT_RECORDED);
+    return {
+      id: `${resourceId(value, 'family-history')}-${index}`,
+      relationship,
+      condition: displayCodeableConcept(cond.code),
+      outcome: displayCodeableConcept(cond.outcome, NOT_RECORDED),
+      onset,
+      status: normalizeStatus(value.status),
+      hasPartialData: !hasMeaningfulValue(relationship),
+    };
+  });
+}
+
+export function normalizeAppointment(value: unknown): AppointmentRow | null {
+  if (!isResourceType<FhirAppointment>(value, 'Appointment')) return null;
+  const serviceType = Array.isArray(value.serviceType)
+    ? value.serviceType
+        .map((item) => displayCodeableConcept(item, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const type = serviceType || displayCodeableConcept(value.appointmentType, UNKNOWN);
+  const reason = Array.isArray(value.reasonCode)
+    ? value.reasonCode
+        .map((r) => displayCodeableConcept(r, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const participant = Array.isArray(value.participant)
+    ? value.participant
+        .map((p) => displayReference(p.actor, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const row = {
+    id: resourceId(value, 'appointment'),
+    type,
+    reason: reason || NOT_RECORDED,
+    start: displayDate(value.start),
+    end: displayDate(value.end),
+    status: normalizeStatus(value.status),
+    participant: participant || NOT_RECORDED,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.type) || !hasMeaningfulValue(row.start),
+  };
+}
+
 export function normalizePractitionerName(value: unknown): string | null {
   if (!isResourceType<FhirPractitioner>(value, 'Practitioner')) return null;
   const names = Array.isArray(value.name) ? value.name : [];
@@ -843,4 +935,25 @@ export const normalizeClinicalBundle = {
       const row = normalizeCarePlan(item);
       return row ? [row] : [];
     }),
+  socialHistory: (bundle: unknown): SocialHistoryRow[] =>
+    bundleEntriesOf<FhirObservation>(bundle, 'Observation').flatMap((item) => {
+      const row = normalizeSocialHistory(item);
+      return row ? [row] : [];
+    }),
+  familyHistory: (bundle: unknown): FamilyHistoryRow[] =>
+    bundleEntriesOf<FhirFamilyMemberHistory>(bundle, 'FamilyMemberHistory').flatMap((item) =>
+      normalizeFamilyHistory(item),
+    ),
+  appointments: (bundle: unknown): AppointmentRow[] => {
+    const entries = bundleEntriesOf<FhirAppointment>(bundle, 'Appointment');
+    const withSort = entries.flatMap((item) => {
+      const row = normalizeAppointment(item);
+      if (!row) return [];
+      const startRaw = stringValue(item.start);
+      const t = startRaw ? new Date(startRaw).getTime() : 0;
+      return [{ row, sortTime: Number.isNaN(t) ? 0 : t }];
+    });
+    withSort.sort((a, b) => b.sortTime - a.sortTime);
+    return withSort.map((entry) => entry.row);
+  },
 };

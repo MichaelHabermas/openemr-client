@@ -189,3 +189,33 @@ export interface DiagnosticReportRow {
   conclusion: string;
   hasPartialData: boolean;
 }
+
+export interface SocialHistoryRow {
+  id: string;
+  name: string;
+  value: string;
+  date: string;
+  status: string;
+  hasPartialData: boolean;
+}
+
+export interface FamilyHistoryRow {
+  id: string;
+  relationship: string;
+  condition: string;
+  outcome: string;
+  onset: string;
+  status: string;
+  hasPartialData: boolean;
+}
+
+export interface AppointmentRow {
+  id: string;
+  type: string;
+  reason: string;
+  start: string;
+  end: string;
+  status: string;
+  participant: string;
+  hasPartialData: boolean;
+}

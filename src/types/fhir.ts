@@ -261,6 +261,41 @@ export interface FhirCarePlan {
   }>;
 }
 
+export interface FhirFamilyMemberHistory {
+  resourceType: 'FamilyMemberHistory';
+  id?: string;
+  status?: string;
+  patient?: FhirReference;
+  relationship?: FhirCodeableConcept;
+  sex?: FhirCodeableConcept;
+  bornDate?: string;
+  deceasedBoolean?: boolean;
+  deceasedDate?: string;
+  condition?: Array<{
+    code?: FhirCodeableConcept;
+    outcome?: FhirCodeableConcept;
+    onsetAge?: { value?: number; unit?: string };
+    onsetString?: string;
+  }>;
+}
+
+export interface FhirAppointment {
+  resourceType: 'Appointment';
+  id?: string;
+  status?: string;
+  serviceType?: FhirCodeableConcept[];
+  appointmentType?: FhirCodeableConcept;
+  reasonCode?: FhirCodeableConcept[];
+  start?: string;
+  end?: string;
+  minutesDuration?: number;
+  description?: string;
+  participant?: Array<{
+    actor?: FhirReference;
+    status?: string;
+  }>;
+}
+
 export interface FhirDiagnosticReport {
   resourceType: 'DiagnosticReport';
   id?: string;

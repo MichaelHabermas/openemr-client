@@ -11,17 +11,21 @@ const resourceTypesByKey = {
   immunizations: 'Immunization',
   vitals: 'Observation',
   labs: 'Observation',
+  'social-history': 'Observation',
   procedures: 'Procedure',
   documents: 'DocumentReference',
   coverage: 'Coverage',
   'diagnostic-reports': 'DiagnosticReport',
   goals: 'Goal',
   'care-plans': 'CarePlan',
+  'family-history': 'FamilyMemberHistory',
+  appointments: 'Appointment',
 } as const;
 
 const categoryByKey: Partial<Record<ClinicalResourceKey, string>> = {
   vitals: 'vital-signs',
   labs: 'laboratory',
+  'social-history': 'social-history',
 };
 
 export type ClinicalResourceKey = keyof typeof resourceTypesByKey;

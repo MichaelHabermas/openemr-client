@@ -201,6 +201,24 @@ export function createApp({ config, services }: CreateAppOptions) {
   app.get('/api/patients/:patientId/care-plans', validatePid, patientClinicalRoute('care-plans'));
 
   app.get(
+    '/api/patients/:patientId/social-history',
+    validatePid,
+    patientClinicalRoute('social-history'),
+  );
+
+  app.get(
+    '/api/patients/:patientId/family-history',
+    validatePid,
+    patientClinicalRoute('family-history'),
+  );
+
+  app.get(
+    '/api/patients/:patientId/appointments',
+    validatePid,
+    patientClinicalRoute('appointments'),
+  );
+
+  app.get(
     '/api/practitioners/:practitionerId',
     protectedFhirRoute('fetchPractitioner', (token, req) => {
       const { practitionerId } = req.params;

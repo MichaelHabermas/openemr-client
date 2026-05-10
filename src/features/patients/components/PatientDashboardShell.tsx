@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { AllergiesCard } from './AllergiesCard';
+import { AppointmentsCard } from './AppointmentsCard';
 import { CarePlansCard } from './CarePlansCard';
 import { CareTeamCard } from './CareTeamCard';
 import { DiagnosticReportsCard } from './DiagnosticReportsCard';
 import { DocumentsCard } from './DocumentsCard';
 import { EncountersCard } from './EncountersCard';
+import { FamilyHistoryCard } from './FamilyHistoryCard';
 import { GoalsCard } from './GoalsCard';
 import { ImmunizationsCard } from './ImmunizationsCard';
 import { InsuranceCard } from './InsuranceCard';
@@ -14,15 +16,18 @@ import { PatientHeader } from './PatientHeader';
 import { PrescriptionsCard } from './PrescriptionsCard';
 import { ProblemListCard } from './ProblemListCard';
 import { ProceduresCard } from './ProceduresCard';
+import { SocialHistoryCard } from './SocialHistoryCard';
 import { VitalsCard } from './VitalsCard';
 import type {
   AllergyRow,
+  AppointmentRow,
   CarePlanRow,
   CareTeamRow,
   CoverageRow,
   DiagnosticReportRow,
   DocumentRow,
   EncounterRow,
+  FamilyHistoryRow,
   GoalRow,
   ImmunizationRow,
   LabRow,
@@ -32,6 +37,7 @@ import type {
   PrescriptionRow,
   ProblemRow,
   ProcedureRow,
+  SocialHistoryRow,
   VitalRow,
 } from '../types';
 
@@ -66,6 +72,9 @@ interface PatientDashboardShellProps {
   diagnosticReports: LoadState<DiagnosticReportRow[]>;
   goals: LoadState<GoalRow[]>;
   carePlans: LoadState<CarePlanRow[]>;
+  socialHistory: LoadState<SocialHistoryRow[]>;
+  familyHistory: LoadState<FamilyHistoryRow[]>;
+  appointments: LoadState<AppointmentRow[]>;
 }
 
 export function PatientDashboardShell({
@@ -85,6 +94,9 @@ export function PatientDashboardShell({
   diagnosticReports,
   goals,
   carePlans,
+  socialHistory,
+  familyHistory,
+  appointments,
 }: PatientDashboardShellProps) {
   const patientName =
     patient.status === 'success' && patient.data ? patient.data.displayName : null;
@@ -138,6 +150,9 @@ export function PatientDashboardShell({
           <EncountersCard state={encounters} />
           <GoalsCard state={goals} />
           <CarePlansCard state={carePlans} />
+          <AppointmentsCard state={appointments} />
+          <SocialHistoryCard state={socialHistory} />
+          <FamilyHistoryCard state={familyHistory} />
         </>
       ) : activeTab === 'History' ? (
         <ProceduresCard state={procedures} />
