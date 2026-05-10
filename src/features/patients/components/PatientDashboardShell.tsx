@@ -3,6 +3,7 @@ import { AllergiesCard } from './AllergiesCard';
 import { AppointmentsCard } from './AppointmentsCard';
 import { CarePlansCard } from './CarePlansCard';
 import { CareTeamCard } from './CareTeamCard';
+import { DevicesCard } from './DevicesCard';
 import { DiagnosticReportsCard } from './DiagnosticReportsCard';
 import { DocumentsCard } from './DocumentsCard';
 import { EncountersCard } from './EncountersCard';
@@ -16,6 +17,8 @@ import { PatientHeader } from './PatientHeader';
 import { PrescriptionsCard } from './PrescriptionsCard';
 import { ProblemListCard } from './ProblemListCard';
 import { ProceduresCard } from './ProceduresCard';
+import { RelatedPersonsCard } from './RelatedPersonsCard';
+import { ServiceRequestsCard } from './ServiceRequestsCard';
 import { SocialHistoryCard } from './SocialHistoryCard';
 import { VitalsCard } from './VitalsCard';
 import type {
@@ -24,6 +27,7 @@ import type {
   CarePlanRow,
   CareTeamRow,
   CoverageRow,
+  DeviceRow,
   DiagnosticReportRow,
   DocumentRow,
   EncounterRow,
@@ -37,6 +41,8 @@ import type {
   PrescriptionRow,
   ProblemRow,
   ProcedureRow,
+  RelatedPersonRow,
+  ServiceRequestRow,
   SocialHistoryRow,
   VitalRow,
 } from '../types';
@@ -75,6 +81,9 @@ interface PatientDashboardShellProps {
   socialHistory: LoadState<SocialHistoryRow[]>;
   familyHistory: LoadState<FamilyHistoryRow[]>;
   appointments: LoadState<AppointmentRow[]>;
+  devices: LoadState<DeviceRow[]>;
+  serviceRequests: LoadState<ServiceRequestRow[]>;
+  relatedPersons: LoadState<RelatedPersonRow[]>;
 }
 
 export function PatientDashboardShell({
@@ -97,6 +106,9 @@ export function PatientDashboardShell({
   socialHistory,
   familyHistory,
   appointments,
+  devices,
+  serviceRequests,
+  relatedPersons,
 }: PatientDashboardShellProps) {
   const patientName =
     patient.status === 'success' && patient.data ? patient.data.displayName : null;
@@ -153,6 +165,9 @@ export function PatientDashboardShell({
           <AppointmentsCard state={appointments} />
           <SocialHistoryCard state={socialHistory} />
           <FamilyHistoryCard state={familyHistory} />
+          <DevicesCard state={devices} />
+          <ServiceRequestsCard state={serviceRequests} />
+          <RelatedPersonsCard state={relatedPersons} />
         </>
       ) : activeTab === 'History' ? (
         <ProceduresCard state={procedures} />

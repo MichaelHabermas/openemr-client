@@ -1,3 +1,5 @@
+import { useParams } from 'react-router-dom';
+
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { EncounterRow, LoadState } from '../types';
 
@@ -16,12 +18,15 @@ const columns: ColumnDef<EncounterRow>[] = [
 ];
 
 export function EncountersCard({ state }: EncountersCardProps) {
+  const { patientId } = useParams();
+
   return (
     <ClinicalTable
       title='Encounter History'
       state={state}
       emptyMessage='No encounters recorded.'
       columns={columns}
+      rowHref={patientId ? (row) => `/patients/${patientId}/encounters/${row.id}` : undefined}
     />
   );
 }

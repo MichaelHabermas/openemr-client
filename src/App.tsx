@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AppLayout } from '@/components/AppLayout';
+import { EncounterDetailPage } from '@/routes/EncounterDetailPage';
 import { HomePage } from '@/routes/HomePage';
 import { LoginRedirectPage } from '@/routes/LoginRedirectPage';
 import { PatientDashboardPage } from '@/routes/PatientDashboardPage';
@@ -15,6 +16,10 @@ export default function App() {
           <Route path='/login' element={<LoginRedirectPage />} />
           <Route path='/patients' element={<PatientsPage />} />
           <Route path='/patients/:patientId' element={<PatientDashboardPage />} />
+          <Route
+            path='/patients/:patientId/encounters/:encounterId'
+            element={<EncounterDetailPage />}
+          />
           <Route path='*' element={<Navigate to='/' replace />} />
         </Route>
       </Routes>

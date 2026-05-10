@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+
 import type { LoadState } from '../types';
 import { ClinicalSectionWrapper } from './ClinicalSectionWrapper';
 
@@ -8,7 +11,7 @@ interface PartialRow {
 
 export interface ColumnDef<TRow> {
   header: string;
-  accessor: (row: TRow) => string;
+  accessor: (row: TRow) => ReactNode;
 }
 
 interface ClinicalTableProps<TRow extends PartialRow> {
@@ -17,6 +20,7 @@ interface ClinicalTableProps<TRow extends PartialRow> {
   state: LoadState<TRow[]>;
   emptyMessage: string;
   columns: ColumnDef<TRow>[];
+  rowHref?: (row: TRow) => string;
 }
 
 export function ClinicalTable<TRow extends PartialRow>({
@@ -25,6 +29,7 @@ export function ClinicalTable<TRow extends PartialRow>({
   state,
   emptyMessage,
   columns,
+  rowHref,
 }: ClinicalTableProps<TRow>) {
   return (
     <ClinicalSectionWrapper
@@ -42,6 +47,7 @@ export function ClinicalTable<TRow extends PartialRow>({
                     {col.header}
                   </th>
                 ))}
+                {rowHref ? <th className='py-1 pr-4 font-semibold' /> : null}
               </tr>
             </thead>
             <tbody>
@@ -52,6 +58,13 @@ export function ClinicalTable<TRow extends PartialRow>({
                       {col.accessor(row)}
                     </td>
                   ))}
+                  {rowHref ? (
+                    <td className='py-1 pr-4'>
+                      <Link to={rowHref(row)} className='text-primary hover:underline'>
+                        View
+                      </Link>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

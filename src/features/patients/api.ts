@@ -134,6 +134,43 @@ export function fetchPatientAppointments(patientId: string): Promise<unknown> {
   return getJson(patientPath(patientId, '/appointments'));
 }
 
+export function fetchPatientDevices(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/devices'));
+}
+
+export function fetchPatientServiceRequests(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/service-requests'));
+}
+
+export function fetchPatientRelatedPersons(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/related-persons'));
+}
+
+export function fetchEncounterDetail(patientId: string, encounterId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, `/encounters/${encodeURIComponent(encounterId)}`));
+}
+
+export function fetchEncounterObservations(
+  patientId: string,
+  encounterId: string,
+): Promise<unknown> {
+  return getJson(
+    patientPath(patientId, `/encounters/${encodeURIComponent(encounterId)}/observations`),
+  );
+}
+
+export async function fetchDocumentContent(patientId: string, documentId: string): Promise<Blob> {
+  const res = await apiFetch(
+    patientPath(patientId, `/documents/${encodeURIComponent(documentId)}/content`),
+  );
+  if (!res.ok) {
+    const body = await safeErrorBody(res);
+    const code = typeof body.error === 'string' ? body.error : undefined;
+    throw new PatientFeatureApiError(safeMessage(res.status, body), res.status, code);
+  }
+  return res.blob();
+}
+
 export function fetchPractitioner(practitionerId: string): Promise<unknown> {
   return getJson(`/api/practitioners/${encodeURIComponent(practitionerId)}`);
 }

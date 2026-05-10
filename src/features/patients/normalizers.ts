@@ -5,6 +5,7 @@ import type {
   FhirCareTeam,
   FhirCondition,
   FhirCoverage,
+  FhirDevice,
   FhirDiagnosticReport,
   FhirDocumentReference,
   FhirEncounter,
@@ -17,6 +18,8 @@ import type {
   FhirPractitioner,
   FhirProcedure,
   FhirReference,
+  FhirRelatedPerson,
+  FhirServiceRequest,
 } from '@/types/fhir';
 import type {
   AllergyRow,
@@ -24,6 +27,7 @@ import type {
   CarePlanRow,
   CareTeamRow,
   CoverageRow,
+  DeviceRow,
   DiagnosticReportRow,
   DocumentRow,
   EncounterRow,
@@ -37,6 +41,8 @@ import type {
   PrescriptionRow,
   ProblemRow,
   ProcedureRow,
+  RelatedPersonRow,
+  ServiceRequestRow,
   SocialHistoryRow,
   VitalRow,
 } from './types';
@@ -822,6 +828,107 @@ export function normalizeAppointment(value: unknown): AppointmentRow | null {
   };
 }
 
+export function normalizeDevice(value: unknown): DeviceRow | null {
+  if (!isResourceType<FhirDevice>(value, 'Device')) return null;
+  const names = Array.isArray(value.deviceName) ? value.deviceName : [];
+  const deviceName =
+    names.map((n) => stringValue(n.name)).find(Boolean) ?? displayCodeableConcept(value.type);
+  const row = {
+    id: resourceId(value, 'device'),
+    deviceName,
+    type: displayCodeableConcept(value.type),
+    status: normalizeStatus(value.status),
+    manufacturer: stringValue(value.manufacturer) ?? NOT_RECORDED,
+    expirationDate: displayDate(value.expirationDate),
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.deviceName),
+  };
+}
+
+export function normalizeServiceRequest(value: unknown): ServiceRequestRow | null {
+  if (!isResourceType<FhirServiceRequest>(value, 'ServiceRequest')) return null;
+  const row = {
+    id: resourceId(value, 'service-request'),
+    name: displayCodeableConcept(value.code),
+    status: normalizeStatus(value.status),
+    intent: normalizeStatus(value.intent),
+    priority: normalizeStatus(value.priority),
+    requester: displayReference(value.requester),
+    authoredOn: displayDate(value.authoredOn),
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.name),
+  };
+}
+
+export function normalizeRelatedPerson(value: unknown): RelatedPersonRow | null {
+  if (!isResourceType<FhirRelatedPerson>(value, 'RelatedPerson')) return null;
+  const names = Array.isArray(value.name) ? value.name : [];
+  const first = names[0];
+  let name = NOT_RECORDED;
+  if (first) {
+    const text = stringValue(first.text);
+    if (text) {
+      name = text;
+    } else {
+      const given = Array.isArray(first.given)
+        ? first.given.filter((g) => typeof g === 'string').join(' ')
+        : '';
+      const family = stringValue(first.family) ?? '';
+      name = [given, family].filter(Boolean).join(' ') || NOT_RECORDED;
+    }
+  }
+  const relationships = Array.isArray(value.relationship)
+    ? value.relationship
+        .map((r) => displayCodeableConcept(r, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const telecoms = Array.isArray(value.telecom) ? value.telecom : [];
+  const phone = telecoms.map((t) => stringValue(t.value)).find(Boolean) ?? NOT_RECORDED;
+  const addresses = Array.isArray(value.address) ? value.address : [];
+  const addr = addresses[0];
+  let address = NOT_RECORDED;
+  if (addr) {
+    if (addr.text) {
+      address = addr.text;
+    } else {
+      const lines = Array.isArray(addr.line) ? addr.line.join(', ') : '';
+      const parts = [lines, addr.city, addr.state, addr.postalCode].filter(Boolean);
+      address = parts.join(', ') || NOT_RECORDED;
+    }
+  }
+  const row = {
+    id: resourceId(value, 'related-person'),
+    name,
+    relationship: relationships || NOT_RECORDED,
+    phone,
+    address,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.name),
+  };
+}
+
+export function normalizeEncounterObservation(value: unknown): VitalRow | null {
+  if (!isResourceType<FhirObservation>(value, 'Observation')) return null;
+  const row = {
+    id: resourceId(value, 'encounter-obs'),
+    name: displayCodeableConcept(value.code),
+    value: observationValue(value),
+    date: displayDate(value.effectiveDateTime ?? value.issued),
+    status: normalizeStatus(value.status),
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.name) || !hasMeaningfulValue(row.value),
+  };
+}
+
 export function normalizePractitionerName(value: unknown): string | null {
   if (!isResourceType<FhirPractitioner>(value, 'Practitioner')) return null;
   const names = Array.isArray(value.name) ? value.name : [];
@@ -956,4 +1063,24 @@ export const normalizeClinicalBundle = {
     withSort.sort((a, b) => b.sortTime - a.sortTime);
     return withSort.map((entry) => entry.row);
   },
+  devices: (bundle: unknown): DeviceRow[] =>
+    bundleEntriesOf<FhirDevice>(bundle, 'Device').flatMap((item) => {
+      const row = normalizeDevice(item);
+      return row ? [row] : [];
+    }),
+  serviceRequests: (bundle: unknown): ServiceRequestRow[] =>
+    bundleEntriesOf<FhirServiceRequest>(bundle, 'ServiceRequest').flatMap((item) => {
+      const row = normalizeServiceRequest(item);
+      return row ? [row] : [];
+    }),
+  relatedPersons: (bundle: unknown): RelatedPersonRow[] =>
+    bundleEntriesOf<FhirRelatedPerson>(bundle, 'RelatedPerson').flatMap((item) => {
+      const row = normalizeRelatedPerson(item);
+      return row ? [row] : [];
+    }),
+  encounterObservations: (bundle: unknown): VitalRow[] =>
+    bundleEntriesOf<FhirObservation>(bundle, 'Observation').flatMap((item) => {
+      const row = normalizeEncounterObservation(item);
+      return row ? [row] : [];
+    }),
 };

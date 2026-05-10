@@ -2,12 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DependencyList } from 'react';
 
 import {
+  fetchEncounterDetail,
+  fetchEncounterObservations,
   fetchPatient,
   fetchPatientAllergies,
   fetchPatientAppointments,
   fetchPatientCarePlans,
   fetchPatientCareTeam,
   fetchPatientCoverage,
+  fetchPatientDevices,
   fetchPatientDiagnosticReports,
   fetchPatientDocuments,
   fetchPatientEncounters,
@@ -19,6 +22,8 @@ import {
   fetchPatientPrescriptions,
   fetchPatientProblems,
   fetchPatientProcedures,
+  fetchPatientRelatedPersons,
+  fetchPatientServiceRequests,
   fetchPatientSocialHistory,
   fetchPatientVitals,
   fetchPatients,
@@ -37,6 +42,7 @@ import type {
   CarePlanRow,
   CareTeamRow,
   CoverageRow,
+  DeviceRow,
   DiagnosticReportRow,
   DocumentRow,
   EncounterRow,
@@ -52,6 +58,8 @@ import type {
   PrescriptionRow,
   ProblemRow,
   ProcedureRow,
+  RelatedPersonRow,
+  ServiceRequestRow,
   SocialHistoryRow,
   VitalRow,
 } from './types';
@@ -145,6 +153,9 @@ type ClinicalRowsByKind = {
   socialHistory: SocialHistoryRow[];
   familyHistory: FamilyHistoryRow[];
   appointments: AppointmentRow[];
+  devices: DeviceRow[];
+  serviceRequests: ServiceRequestRow[];
+  relatedPersons: RelatedPersonRow[];
 };
 
 function usePatientAllergies(patientId: string): LoadState<ClinicalRowsByKind['allergies']> {
@@ -328,14 +339,80 @@ function usePatientFamilyHistory(
   );
 }
 
-function usePatientAppointments(
-  patientId: string,
-): LoadState<ClinicalRowsByKind['appointments']> {
+function usePatientAppointments(patientId: string): LoadState<ClinicalRowsByKind['appointments']> {
   const enabled = Boolean(patientId.trim());
   return useAsyncPatientState(
     async () => normalizeClinicalBundle.appointments(await fetchPatientAppointments(patientId)),
     (rows) => rows.length === 0,
     [patientId],
+    enabled,
+  );
+}
+
+function usePatientDevices(patientId: string): LoadState<ClinicalRowsByKind['devices']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.devices(await fetchPatientDevices(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
+function usePatientServiceRequests(
+  patientId: string,
+): LoadState<ClinicalRowsByKind['serviceRequests']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () =>
+      normalizeClinicalBundle.serviceRequests(await fetchPatientServiceRequests(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
+function usePatientRelatedPersons(
+  patientId: string,
+): LoadState<ClinicalRowsByKind['relatedPersons']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.relatedPersons(await fetchPatientRelatedPersons(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
+export function useEncounterDetail(
+  patientId: string,
+  encounterId: string,
+): LoadState<EncounterRow | null> {
+  const enabled = Boolean(patientId.trim()) && Boolean(encounterId.trim());
+  return useAsyncPatientState(
+    async () => {
+      const { normalizeEncounter } = await import('./normalizers');
+      const data = await fetchEncounterDetail(patientId, encounterId);
+      return normalizeEncounter(data);
+    },
+    (encounter) => encounter === null,
+    [patientId, encounterId],
+    enabled,
+  );
+}
+
+export function useEncounterObservations(
+  patientId: string,
+  encounterId: string,
+): LoadState<VitalRow[]> {
+  const enabled = Boolean(patientId.trim()) && Boolean(encounterId.trim());
+  return useAsyncPatientState(
+    async () =>
+      normalizeClinicalBundle.encounterObservations(
+        await fetchEncounterObservations(patientId, encounterId),
+      ),
+    (rows) => rows.length === 0,
+    [patientId, encounterId],
     enabled,
   );
 }
@@ -397,5 +474,8 @@ export function usePatientDashboard(patientId: string) {
     socialHistory: usePatientSocialHistory(patientId),
     familyHistory: usePatientFamilyHistory(patientId),
     appointments: usePatientAppointments(patientId),
+    devices: usePatientDevices(patientId),
+    serviceRequests: usePatientServiceRequests(patientId),
+    relatedPersons: usePatientRelatedPersons(patientId),
   };
 }

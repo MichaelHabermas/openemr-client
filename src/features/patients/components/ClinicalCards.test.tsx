@@ -17,6 +17,7 @@ import type {
   CarePlanRow,
   CareTeamRow,
   CoverageRow,
+  DeviceRow,
   DiagnosticReportRow,
   DocumentRow,
   EncounterRow,
@@ -29,6 +30,8 @@ import type {
   PatientSummary,
   PrescriptionRow,
   ProcedureRow,
+  RelatedPersonRow,
+  ServiceRequestRow,
   SocialHistoryRow,
   VitalRow,
 } from '../types';
@@ -323,6 +326,9 @@ describe('PatientDashboardShell', () => {
           socialHistory={success<SocialHistoryRow[]>([])}
           familyHistory={success<FamilyHistoryRow[]>([])}
           appointments={success<AppointmentRow[]>([])}
+          devices={success<DeviceRow[]>([])}
+          serviceRequests={success<ServiceRequestRow[]>([])}
+          relatedPersons={success<RelatedPersonRow[]>([])}
         />
       </MemoryRouter>,
     );

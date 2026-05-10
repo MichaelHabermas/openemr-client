@@ -17,6 +17,8 @@ type FhirFake = {
     resourceKey?: string;
     patientId?: string;
     practitionerId?: string;
+    encounterId?: string;
+    documentId?: string;
   }>;
   error?: unknown;
   fetchPatientBundle(accessToken: string): Promise<unknown>;
@@ -27,6 +29,12 @@ type FhirFake = {
     patientId: string,
   ): Promise<unknown>;
   fetchPractitioner(accessToken: string, practitionerId: string): Promise<unknown>;
+  fetchEncounter(accessToken: string, encounterId: string): Promise<unknown>;
+  fetchEncounterObservations(accessToken: string, encounterId: string): Promise<unknown>;
+  fetchDocumentContent(
+    accessToken: string,
+    documentId: string,
+  ): Promise<{ contentType: string; data: Buffer }>;
 };
 
 type RouteLayer = {
@@ -109,6 +117,21 @@ function createFakes() {
       fhir.calls.push({ operation: 'fetchPractitioner', accessToken, practitionerId });
       if (fhir.error) throw fhir.error;
       return { resourceType: 'Practitioner', id: practitionerId, name: [{ family: 'Smith' }] };
+    },
+    async fetchEncounter(accessToken: string, encounterId: string) {
+      fhir.calls.push({ operation: 'fetchEncounter', accessToken, encounterId });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Encounter', id: encounterId };
+    },
+    async fetchEncounterObservations(accessToken: string, encounterId: string) {
+      fhir.calls.push({ operation: 'fetchEncounterObservations', accessToken, encounterId });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Bundle', entry: [] };
+    },
+    async fetchDocumentContent(accessToken: string, documentId: string) {
+      fhir.calls.push({ operation: 'fetchDocumentContent', accessToken, documentId });
+      if (fhir.error) throw fhir.error;
+      return { contentType: 'application/pdf', data: Buffer.from('fake-pdf') };
     },
   };
   return { oauth, fhir };

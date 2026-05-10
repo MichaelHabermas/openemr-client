@@ -296,6 +296,54 @@ export interface FhirAppointment {
   }>;
 }
 
+export interface FhirDevice {
+  resourceType: 'Device';
+  id?: string;
+  status?: string;
+  type?: FhirCodeableConcept;
+  manufacturer?: string;
+  expirationDate?: string;
+  deviceName?: Array<{
+    name?: string;
+    type?: string;
+  }>;
+  patient?: FhirReference;
+}
+
+export interface FhirServiceRequest {
+  resourceType: 'ServiceRequest';
+  id?: string;
+  status?: string;
+  intent?: string;
+  priority?: string;
+  code?: FhirCodeableConcept;
+  subject?: FhirReference;
+  requester?: FhirReference;
+  authoredOn?: string;
+  category?: FhirCodeableConcept[];
+}
+
+export interface FhirRelatedPerson {
+  resourceType: 'RelatedPerson';
+  id?: string;
+  active?: boolean;
+  patient?: FhirReference;
+  relationship?: FhirCodeableConcept[];
+  name?: FhirHumanName[];
+  telecom?: Array<{
+    system?: string;
+    value?: string;
+    use?: string;
+  }>;
+  address?: Array<{
+    text?: string;
+    line?: string[];
+    city?: string;
+    state?: string;
+    postalCode?: string;
+  }>;
+}
+
 export interface FhirDiagnosticReport {
   resourceType: 'DiagnosticReport';
   id?: string;

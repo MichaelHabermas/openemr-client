@@ -218,6 +218,70 @@ export function createApp({ config, services }: CreateAppOptions) {
     patientClinicalRoute('appointments'),
   );
 
+  app.get('/api/patients/:patientId/devices', validatePid, patientClinicalRoute('devices'));
+
+  app.get(
+    '/api/patients/:patientId/service-requests',
+    validatePid,
+    patientClinicalRoute('service-requests'),
+  );
+
+  app.get(
+    '/api/patients/:patientId/related-persons',
+    validatePid,
+    patientClinicalRoute('related-persons'),
+  );
+
+  app.get(
+    '/api/patients/:patientId/encounters/:encounterId',
+    validatePid,
+    protectedFhirRoute('fetchEncounter', (token, req) => {
+      const { encounterId } = req.params;
+      const id = Array.isArray(encounterId) ? encounterId[0] : encounterId;
+      return services.fhir.fetchEncounter(token, id);
+    }),
+  );
+
+  app.get(
+    '/api/patients/:patientId/encounters/:encounterId/observations',
+    validatePid,
+    protectedFhirRoute('fetchEncounterObservations', (token, req) => {
+      const { encounterId } = req.params;
+      const id = Array.isArray(encounterId) ? encounterId[0] : encounterId;
+      return services.fhir.fetchEncounterObservations(token, id);
+    }),
+  );
+
+  app.get('/api/patients/:patientId/documents/:documentId/content', validatePid, (async (
+    req,
+    res,
+  ) => {
+    const token = readAccessTokenCookie(req);
+    if (!token) {
+      res.status(401).json({ error: apiErrorCodes.notAuthenticated });
+      return;
+    }
+    const { documentId } = req.params;
+    const id = Array.isArray(documentId) ? documentId[0] : documentId;
+    try {
+      const { contentType, data } = await services.fhir.fetchDocumentContent(token, id);
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Length', data.length);
+      res.send(data);
+    } catch (error) {
+      const mapped = mapFhirError(error);
+      console.error('FHIR proxy failed', {
+        operation: 'fetchDocumentContent',
+        status: mapped.status,
+        error: mapped.body.error,
+      });
+      if (mapped.status === 401) {
+        clearAccessTokenCookie(res);
+      }
+      res.status(mapped.status).json(mapped.body);
+    }
+  }) as express.RequestHandler);
+
   app.get(
     '/api/practitioners/:practitionerId',
     protectedFhirRoute('fetchPractitioner', (token, req) => {

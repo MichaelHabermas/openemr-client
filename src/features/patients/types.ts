@@ -219,3 +219,33 @@ export interface AppointmentRow {
   participant: string;
   hasPartialData: boolean;
 }
+
+export interface DeviceRow {
+  id: string;
+  deviceName: string;
+  type: string;
+  status: string;
+  manufacturer: string;
+  expirationDate: string;
+  hasPartialData: boolean;
+}
+
+export interface ServiceRequestRow {
+  id: string;
+  name: string;
+  status: string;
+  intent: string;
+  priority: string;
+  requester: string;
+  authoredOn: string;
+  hasPartialData: boolean;
+}
+
+export interface RelatedPersonRow {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  address: string;
+  hasPartialData: boolean;
+}
