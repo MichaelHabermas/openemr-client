@@ -166,3 +166,72 @@ export interface FhirPractitioner {
   identifier?: FhirIdentifier[];
   active?: boolean;
 }
+
+export interface FhirProcedure {
+  resourceType: 'Procedure';
+  id?: string;
+  status?: string;
+  code?: FhirCodeableConcept;
+  subject?: FhirReference;
+  performedDateTime?: string;
+  performedPeriod?: FhirPeriod;
+  performer?: Array<{
+    actor?: FhirReference;
+  }>;
+  reasonCode?: FhirCodeableConcept[];
+  bodySite?: FhirCodeableConcept[];
+  category?: FhirCodeableConcept;
+  note?: Array<{ text?: string }>;
+}
+
+export interface FhirDocumentReference {
+  resourceType: 'DocumentReference';
+  id?: string;
+  status?: string;
+  type?: FhirCodeableConcept;
+  category?: FhirCodeableConcept[];
+  subject?: FhirReference;
+  date?: string;
+  author?: FhirReference[];
+  description?: string;
+  content?: Array<{
+    attachment?: {
+      contentType?: string;
+      url?: string;
+      title?: string;
+      size?: number;
+    };
+  }>;
+}
+
+export interface FhirCoverage {
+  resourceType: 'Coverage';
+  id?: string;
+  status?: string;
+  type?: FhirCodeableConcept;
+  subscriber?: FhirReference;
+  beneficiary?: FhirReference;
+  relationship?: FhirCodeableConcept;
+  period?: FhirPeriod;
+  payor?: FhirReference[];
+  class?: Array<{
+    type?: FhirCodeableConcept;
+    value?: string;
+    name?: string;
+  }>;
+}
+
+export interface FhirDiagnosticReport {
+  resourceType: 'DiagnosticReport';
+  id?: string;
+  status?: string;
+  category?: FhirCodeableConcept[];
+  code?: FhirCodeableConcept;
+  subject?: FhirReference;
+  effectiveDateTime?: string;
+  effectivePeriod?: FhirPeriod;
+  issued?: string;
+  performer?: FhirReference[];
+  result?: FhirReference[];
+  conclusion?: string;
+}

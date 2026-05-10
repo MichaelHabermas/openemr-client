@@ -94,6 +94,26 @@ export function fetchPatientVitals(patientId: string): Promise<unknown> {
   return getJson(patientPath(patientId, '/vitals'));
 }
 
+export function fetchPatientLabs(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/labs'));
+}
+
+export function fetchPatientProcedures(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/procedures'));
+}
+
+export function fetchPatientDocuments(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/documents'));
+}
+
+export function fetchPatientCoverage(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/coverage'));
+}
+
+export function fetchPatientDiagnosticReports(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/diagnostic-reports'));
+}
+
 export function fetchPractitioner(practitionerId: string): Promise<unknown> {
   return getJson(`/api/practitioners/${encodeURIComponent(practitionerId)}`);
 }

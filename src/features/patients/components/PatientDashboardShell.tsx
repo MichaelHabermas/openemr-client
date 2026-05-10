@@ -1,23 +1,33 @@
 import { useState } from 'react';
 import { AllergiesCard } from './AllergiesCard';
 import { CareTeamCard } from './CareTeamCard';
+import { DiagnosticReportsCard } from './DiagnosticReportsCard';
+import { DocumentsCard } from './DocumentsCard';
 import { EncountersCard } from './EncountersCard';
 import { ImmunizationsCard } from './ImmunizationsCard';
+import { InsuranceCard } from './InsuranceCard';
+import { LabResultsCard } from './LabResultsCard';
 import { MedicationsCard } from './MedicationsCard';
 import { PatientHeader } from './PatientHeader';
 import { PrescriptionsCard } from './PrescriptionsCard';
 import { ProblemListCard } from './ProblemListCard';
+import { ProceduresCard } from './ProceduresCard';
 import { VitalsCard } from './VitalsCard';
 import type {
   AllergyRow,
   CareTeamRow,
+  CoverageRow,
+  DiagnosticReportRow,
+  DocumentRow,
   EncounterRow,
   ImmunizationRow,
+  LabRow,
   LoadState,
   MedicationRow,
   PatientHeaderModel,
   PrescriptionRow,
   ProblemRow,
+  ProcedureRow,
   VitalRow,
 } from '../types';
 
@@ -35,7 +45,12 @@ const TAB_LABELS = [
 
 type TabLabel = (typeof TAB_LABELS)[number];
 
-const IMPLEMENTED_TABS: ReadonlySet<TabLabel> = new Set(['Dashboard']);
+const IMPLEMENTED_TABS: ReadonlySet<TabLabel> = new Set([
+  'Dashboard',
+  'History',
+  'Report',
+  'Documents',
+]);
 
 function ComingSoonTab({ label }: { label: string }) {
   return (
@@ -56,6 +71,11 @@ interface PatientDashboardShellProps {
   encounters: LoadState<EncounterRow[]>;
   immunizations: LoadState<ImmunizationRow[]>;
   vitals: LoadState<VitalRow[]>;
+  labs: LoadState<LabRow[]>;
+  procedures: LoadState<ProcedureRow[]>;
+  documents: LoadState<DocumentRow[]>;
+  coverage: LoadState<CoverageRow[]>;
+  diagnosticReports: LoadState<DiagnosticReportRow[]>;
 }
 
 export function PatientDashboardShell({
@@ -68,6 +88,11 @@ export function PatientDashboardShell({
   encounters,
   immunizations,
   vitals,
+  labs,
+  procedures,
+  documents,
+  coverage,
+  diagnosticReports,
 }: PatientDashboardShellProps) {
   const patientName =
     patient.status === 'success' && patient.data ? patient.data.displayName : null;
@@ -114,10 +139,18 @@ export function PatientDashboardShell({
 
           <PrescriptionsCard state={prescriptions} />
           <VitalsCard state={vitals} />
+          <LabResultsCard state={labs} />
           <ImmunizationsCard state={immunizations} />
+          <InsuranceCard state={coverage} />
           <CareTeamCard state={careTeam} />
           <EncountersCard state={encounters} />
         </>
+      ) : activeTab === 'History' ? (
+        <ProceduresCard state={procedures} />
+      ) : activeTab === 'Report' ? (
+        <DiagnosticReportsCard state={diagnosticReports} />
+      ) : activeTab === 'Documents' ? (
+        <DocumentsCard state={documents} />
       ) : !IMPLEMENTED_TABS.has(activeTab) ? (
         <ComingSoonTab label={activeTab} />
       ) : null}

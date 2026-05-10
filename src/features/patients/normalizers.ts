@@ -2,24 +2,33 @@ import type {
   FhirAllergyIntolerance,
   FhirCareTeam,
   FhirCondition,
+  FhirCoverage,
+  FhirDiagnosticReport,
+  FhirDocumentReference,
   FhirEncounter,
   FhirImmunization,
   FhirMedicationRequest,
   FhirObservation,
   FhirPatient,
   FhirPractitioner,
+  FhirProcedure,
   FhirReference,
 } from '@/types/fhir';
 import type {
   AllergyRow,
   CareTeamRow,
+  CoverageRow,
+  DiagnosticReportRow,
+  DocumentRow,
   EncounterRow,
   ImmunizationRow,
+  LabRow,
   MedicationRow,
   PatientHeaderModel,
   PatientSummary,
   PrescriptionRow,
   ProblemRow,
+  ProcedureRow,
   VitalRow,
 } from './types';
 
@@ -522,6 +531,151 @@ export function normalizeVital(value: unknown): VitalRow | null {
   };
 }
 
+function referenceRangeText(obs: FhirObservation): string {
+  if (!Array.isArray(obs.referenceRange) || obs.referenceRange.length === 0) return NOT_RECORDED;
+  return (
+    obs.referenceRange
+      .map((r) => {
+        if (r.text) return r.text;
+        const low = r.low?.value != null ? `${r.low.value} ${r.low.unit ?? ''}`.trim() : '';
+        const high = r.high?.value != null ? `${r.high.value} ${r.high.unit ?? ''}`.trim() : '';
+        if (low && high) return `${low} – ${high}`;
+        if (low) return `≥ ${low}`;
+        if (high) return `≤ ${high}`;
+        return '';
+      })
+      .filter(Boolean)
+      .join('; ') || NOT_RECORDED
+  );
+}
+
+export function normalizeLab(value: unknown): LabRow | null {
+  if (!isResourceType<FhirObservation>(value, 'Observation')) return null;
+  const row = {
+    id: resourceId(value, 'lab'),
+    name: displayCodeableConcept(value.code),
+    value: observationValue(value),
+    date: displayDate(value.effectiveDateTime ?? value.issued),
+    status: normalizeStatus(value.status),
+    referenceRange: referenceRangeText(value),
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.name) || !hasMeaningfulValue(row.value),
+  };
+}
+
+export function normalizeProcedure(value: unknown): ProcedureRow | null {
+  if (!isResourceType<FhirProcedure>(value, 'Procedure')) return null;
+  const performer = Array.isArray(value.performer)
+    ? value.performer
+        .map((p) => displayReference(p.actor, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const reason = Array.isArray(value.reasonCode)
+    ? value.reasonCode
+        .map((r) => displayCodeableConcept(r, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const row = {
+    id: resourceId(value, 'procedure'),
+    name: displayCodeableConcept(value.code),
+    date: displayDate(value.performedDateTime ?? value.performedPeriod?.start),
+    status: normalizeStatus(value.status),
+    performer: performer || NOT_RECORDED,
+    reason: reason || NOT_RECORDED,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.name),
+  };
+}
+
+export function normalizeDocument(value: unknown): DocumentRow | null {
+  if (!isResourceType<FhirDocumentReference>(value, 'DocumentReference')) return null;
+  const author = Array.isArray(value.author)
+    ? value.author
+        .map((a) => displayReference(a, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const row = {
+    id: resourceId(value, 'document'),
+    type: displayCodeableConcept(value.type),
+    date: displayDate(value.date),
+    status: normalizeStatus(value.status),
+    author: author || NOT_RECORDED,
+    description: stringValue(value.description) ?? NOT_RECORDED,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.type),
+  };
+}
+
+export function normalizeCoverage(value: unknown): CoverageRow | null {
+  if (!isResourceType<FhirCoverage>(value, 'Coverage')) return null;
+  const payor = Array.isArray(value.payor)
+    ? value.payor
+        .map((p) => displayReference(p, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const coverageClass = Array.isArray(value.class)
+    ? value.class.find((c) => {
+        const typeText = displayCodeableConcept(c.type, '').toLowerCase();
+        return typeText === 'group' || typeText.includes('subscriber');
+      })
+    : undefined;
+  const period = value.period
+    ? `${displayDate(value.period.start)} – ${displayDate(value.period.end)}`
+    : NOT_RECORDED;
+  const row = {
+    id: resourceId(value, 'coverage'),
+    type: displayCodeableConcept(value.type),
+    status: normalizeStatus(value.status),
+    payor: payor || NOT_RECORDED,
+    period,
+    subscriberId: coverageClass?.value ?? NOT_RECORDED,
+    relationship: displayCodeableConcept(value.relationship, NOT_RECORDED),
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.type) || !hasMeaningfulValue(row.payor),
+  };
+}
+
+export function normalizeDiagnosticReport(value: unknown): DiagnosticReportRow | null {
+  if (!isResourceType<FhirDiagnosticReport>(value, 'DiagnosticReport')) return null;
+  const category = Array.isArray(value.category)
+    ? value.category
+        .map((c) => displayCodeableConcept(c, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const performer = Array.isArray(value.performer)
+    ? value.performer
+        .map((p) => displayReference(p, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const row = {
+    id: resourceId(value, 'diagnostic-report'),
+    name: displayCodeableConcept(value.code),
+    date: displayDate(value.effectiveDateTime ?? value.effectivePeriod?.start ?? value.issued),
+    status: normalizeStatus(value.status),
+    category: category || NOT_RECORDED,
+    performer: performer || NOT_RECORDED,
+    conclusion: stringValue(value.conclusion) ?? NOT_RECORDED,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.name),
+  };
+}
+
 export function normalizePractitionerName(value: unknown): string | null {
   if (!isResourceType<FhirPractitioner>(value, 'Practitioner')) return null;
   const names = Array.isArray(value.name) ? value.name : [];
@@ -593,4 +747,36 @@ export const normalizeClinicalBundle = {
     withSort.sort((a, b) => b.sortTime - a.sortTime);
     return withSort.map((entry) => entry.row);
   },
+  labs: (bundle: unknown): LabRow[] => {
+    const entries = bundleEntriesOf<FhirObservation>(bundle, 'Observation');
+    const withSort = entries.flatMap((item) => {
+      const row = normalizeLab(item);
+      if (!row) return [];
+      const dateRaw = stringValue(item.effectiveDateTime ?? item.issued);
+      const t = dateRaw ? new Date(dateRaw).getTime() : 0;
+      return [{ row, sortTime: Number.isNaN(t) ? 0 : t }];
+    });
+    withSort.sort((a, b) => b.sortTime - a.sortTime);
+    return withSort.map((entry) => entry.row);
+  },
+  procedures: (bundle: unknown): ProcedureRow[] =>
+    bundleEntriesOf<FhirProcedure>(bundle, 'Procedure').flatMap((item) => {
+      const row = normalizeProcedure(item);
+      return row ? [row] : [];
+    }),
+  documents: (bundle: unknown): DocumentRow[] =>
+    bundleEntriesOf<FhirDocumentReference>(bundle, 'DocumentReference').flatMap((item) => {
+      const row = normalizeDocument(item);
+      return row ? [row] : [];
+    }),
+  coverage: (bundle: unknown): CoverageRow[] =>
+    bundleEntriesOf<FhirCoverage>(bundle, 'Coverage').flatMap((item) => {
+      const row = normalizeCoverage(item);
+      return row ? [row] : [];
+    }),
+  diagnosticReports: (bundle: unknown): DiagnosticReportRow[] =>
+    bundleEntriesOf<FhirDiagnosticReport>(bundle, 'DiagnosticReport').flatMap((item) => {
+      const row = normalizeDiagnosticReport(item);
+      return row ? [row] : [];
+    }),
 };

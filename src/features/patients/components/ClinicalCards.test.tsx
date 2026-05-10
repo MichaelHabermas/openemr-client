@@ -14,12 +14,17 @@ import { ProblemListCard } from './ProblemListCard';
 import type {
   AllergyRow,
   CareTeamRow,
+  CoverageRow,
+  DiagnosticReportRow,
+  DocumentRow,
   EncounterRow,
   ImmunizationRow,
+  LabRow,
   LoadState,
   MedicationRow,
   PatientSummary,
   PrescriptionRow,
+  ProcedureRow,
   VitalRow,
 } from '../types';
 
@@ -303,6 +308,11 @@ describe('PatientDashboardShell', () => {
           ])}
           immunizations={success<ImmunizationRow[]>([])}
           vitals={success<VitalRow[]>([])}
+          labs={success<LabRow[]>([])}
+          procedures={success<ProcedureRow[]>([])}
+          documents={success<DocumentRow[]>([])}
+          coverage={success<CoverageRow[]>([])}
+          diagnosticReports={success<DiagnosticReportRow[]>([])}
         />
       </MemoryRouter>,
     );

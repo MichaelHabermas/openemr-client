@@ -182,6 +182,20 @@ export function createApp({ config, services }: CreateAppOptions) {
 
   app.get('/api/patients/:patientId/vitals', validatePid, patientClinicalRoute('vitals'));
 
+  app.get('/api/patients/:patientId/labs', validatePid, patientClinicalRoute('labs'));
+
+  app.get('/api/patients/:patientId/procedures', validatePid, patientClinicalRoute('procedures'));
+
+  app.get('/api/patients/:patientId/documents', validatePid, patientClinicalRoute('documents'));
+
+  app.get('/api/patients/:patientId/coverage', validatePid, patientClinicalRoute('coverage'));
+
+  app.get(
+    '/api/patients/:patientId/diagnostic-reports',
+    validatePid,
+    patientClinicalRoute('diagnostic-reports'),
+  );
+
   app.get(
     '/api/practitioners/:practitionerId',
     protectedFhirRoute('fetchPractitioner', (token, req) => {

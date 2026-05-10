@@ -46,10 +46,7 @@ export function ClinicalSectionWrapper({
             {count != null ? ` [${count}]` : ''}
           </span>
         </button>
-        <Pencil
-          className='text-muted-foreground h-3.5 w-3.5 opacity-25'
-          aria-hidden='true'
-        />
+        <Pencil className='text-muted-foreground h-3.5 w-3.5 opacity-25' aria-hidden='true' />
       </h3>
       <div id={contentId} hidden={collapsed}>
         {fallback ?? children}

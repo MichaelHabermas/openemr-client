@@ -5,11 +5,16 @@ import {
   fetchPatient,
   fetchPatientAllergies,
   fetchPatientCareTeam,
+  fetchPatientCoverage,
+  fetchPatientDiagnosticReports,
+  fetchPatientDocuments,
   fetchPatientEncounters,
   fetchPatientImmunizations,
+  fetchPatientLabs,
   fetchPatientMedications,
   fetchPatientPrescriptions,
   fetchPatientProblems,
+  fetchPatientProcedures,
   fetchPatientVitals,
   fetchPatients,
   fetchPractitioner,
@@ -24,8 +29,12 @@ import {
 import type {
   AllergyRow,
   CareTeamRow,
+  CoverageRow,
+  DiagnosticReportRow,
+  DocumentRow,
   EncounterRow,
   ImmunizationRow,
+  LabRow,
   LoadState,
   MedicationRow,
   PatientFeatureError,
@@ -33,6 +42,7 @@ import type {
   PatientSummary,
   PrescriptionRow,
   ProblemRow,
+  ProcedureRow,
   VitalRow,
 } from './types';
 
@@ -115,6 +125,11 @@ type ClinicalRowsByKind = {
   encounters: EncounterRow[];
   immunizations: ImmunizationRow[];
   vitals: VitalRow[];
+  labs: LabRow[];
+  procedures: ProcedureRow[];
+  documents: DocumentRow[];
+  coverage: CoverageRow[];
+  diagnosticReports: DiagnosticReportRow[];
 };
 
 function usePatientAllergies(patientId: string): LoadState<ClinicalRowsByKind['allergies']> {
@@ -201,6 +216,59 @@ function usePatientVitals(patientId: string): LoadState<ClinicalRowsByKind['vita
   );
 }
 
+function usePatientLabs(patientId: string): LoadState<ClinicalRowsByKind['labs']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.labs(await fetchPatientLabs(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
+function usePatientProcedures(patientId: string): LoadState<ClinicalRowsByKind['procedures']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.procedures(await fetchPatientProcedures(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
+function usePatientDocuments(patientId: string): LoadState<ClinicalRowsByKind['documents']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.documents(await fetchPatientDocuments(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
+function usePatientCoverage(patientId: string): LoadState<ClinicalRowsByKind['coverage']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.coverage(await fetchPatientCoverage(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
+function usePatientDiagnosticReports(
+  patientId: string,
+): LoadState<ClinicalRowsByKind['diagnosticReports']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () =>
+      normalizeClinicalBundle.diagnosticReports(await fetchPatientDiagnosticReports(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
 export function usePractitionerResolver() {
   const cache = useRef<Map<string, string>>(new Map());
   const [names, setNames] = useState<Map<string, string>>(new Map());
@@ -248,5 +316,10 @@ export function usePatientDashboard(patientId: string) {
     encounters: usePatientEncounters(patientId),
     immunizations: usePatientImmunizations(patientId),
     vitals: usePatientVitals(patientId),
+    labs: usePatientLabs(patientId),
+    procedures: usePatientProcedures(patientId),
+    documents: usePatientDocuments(patientId),
+    coverage: usePatientCoverage(patientId),
+    diagnosticReports: usePatientDiagnosticReports(patientId),
   };
 }

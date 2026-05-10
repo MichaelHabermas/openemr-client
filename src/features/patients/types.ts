@@ -115,3 +115,55 @@ export interface VitalRow {
   status: string;
   hasPartialData: boolean;
 }
+
+export interface LabRow {
+  id: string;
+  name: string;
+  value: string;
+  date: string;
+  status: string;
+  referenceRange: string;
+  hasPartialData: boolean;
+}
+
+export interface ProcedureRow {
+  id: string;
+  name: string;
+  date: string;
+  status: string;
+  performer: string;
+  reason: string;
+  hasPartialData: boolean;
+}
+
+export interface DocumentRow {
+  id: string;
+  type: string;
+  date: string;
+  status: string;
+  author: string;
+  description: string;
+  hasPartialData: boolean;
+}
+
+export interface CoverageRow {
+  id: string;
+  type: string;
+  status: string;
+  payor: string;
+  period: string;
+  subscriberId: string;
+  relationship: string;
+  hasPartialData: boolean;
+}
+
+export interface DiagnosticReportRow {
+  id: string;
+  name: string;
+  date: string;
+  status: string;
+  category: string;
+  performer: string;
+  conclusion: string;
+  hasPartialData: boolean;
+}

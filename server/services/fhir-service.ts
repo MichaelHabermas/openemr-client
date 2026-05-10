@@ -10,10 +10,16 @@ const resourceTypesByKey = {
   encounters: 'Encounter',
   immunizations: 'Immunization',
   vitals: 'Observation',
+  labs: 'Observation',
+  procedures: 'Procedure',
+  documents: 'DocumentReference',
+  coverage: 'Coverage',
+  'diagnostic-reports': 'DiagnosticReport',
 } as const;
 
 const categoryByKey: Partial<Record<ClinicalResourceKey, string>> = {
   vitals: 'vital-signs',
+  labs: 'laboratory',
 };
 
 export type ClinicalResourceKey = keyof typeof resourceTypesByKey;
