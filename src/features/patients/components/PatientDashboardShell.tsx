@@ -1,19 +1,23 @@
 import { AllergiesCard } from './AllergiesCard';
 import { CareTeamCard } from './CareTeamCard';
 import { EncountersCard } from './EncountersCard';
+import { ImmunizationsCard } from './ImmunizationsCard';
 import { MedicationsCard } from './MedicationsCard';
 import { PatientHeader } from './PatientHeader';
 import { PrescriptionsCard } from './PrescriptionsCard';
 import { ProblemListCard } from './ProblemListCard';
+import { VitalsCard } from './VitalsCard';
 import type {
   AllergyRow,
   CareTeamRow,
   EncounterRow,
+  ImmunizationRow,
   LoadState,
   MedicationRow,
   PatientHeaderModel,
   PrescriptionRow,
   ProblemRow,
+  VitalRow,
 } from '../types';
 
 const TAB_LABELS = [
@@ -36,6 +40,8 @@ interface PatientDashboardShellProps {
   prescriptions: LoadState<PrescriptionRow[]>;
   careTeam: LoadState<CareTeamRow[]>;
   encounters: LoadState<EncounterRow[]>;
+  immunizations: LoadState<ImmunizationRow[]>;
+  vitals: LoadState<VitalRow[]>;
 }
 
 export function PatientDashboardShell({
@@ -46,6 +52,8 @@ export function PatientDashboardShell({
   prescriptions,
   careTeam,
   encounters,
+  immunizations,
+  vitals,
 }: PatientDashboardShellProps) {
   const patientName =
     patient.status === 'success' && patient.data ? patient.data.displayName : null;
@@ -86,6 +94,8 @@ export function PatientDashboardShell({
       </div>
 
       <PrescriptionsCard state={prescriptions} />
+      <VitalsCard state={vitals} />
+      <ImmunizationsCard state={immunizations} />
       <CareTeamCard state={careTeam} />
       <EncountersCard state={encounters} />
     </div>

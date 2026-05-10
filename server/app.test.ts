@@ -16,6 +16,7 @@ type FhirFake = {
     accessToken: string;
     resourceKey?: string;
     patientId?: string;
+    practitionerId?: string;
   }>;
   error?: unknown;
   fetchPatientBundle(accessToken: string): Promise<unknown>;
@@ -25,6 +26,7 @@ type FhirFake = {
     resourceKey: string,
     patientId: string,
   ): Promise<unknown>;
+  fetchPractitioner(accessToken: string, practitionerId: string): Promise<unknown>;
 };
 
 type RouteLayer = {
@@ -102,6 +104,11 @@ function createFakes() {
       });
       if (fhir.error) throw fhir.error;
       return { resourceType: 'Bundle', type: resourceKey, patientId };
+    },
+    async fetchPractitioner(accessToken: string, practitionerId: string) {
+      fhir.calls.push({ operation: 'fetchPractitioner', accessToken, practitionerId });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Practitioner', id: practitionerId, name: [{ family: 'Smith' }] };
     },
   };
   return { oauth, fhir };

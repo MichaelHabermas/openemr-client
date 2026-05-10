@@ -15,10 +15,12 @@ import type {
   AllergyRow,
   CareTeamRow,
   EncounterRow,
+  ImmunizationRow,
   LoadState,
   MedicationRow,
   PatientSummary,
   PrescriptionRow,
+  VitalRow,
 } from '../types';
 
 interface TestRow {
@@ -299,6 +301,8 @@ describe('PatientDashboardShell', () => {
               hasPartialData: false,
             },
           ])}
+          immunizations={success<ImmunizationRow[]>([])}
+          vitals={success<VitalRow[]>([])}
         />
       </MemoryRouter>,
     );

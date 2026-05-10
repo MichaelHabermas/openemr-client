@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DependencyList } from 'react';
 
 import {
@@ -6,21 +6,26 @@ import {
   fetchPatientAllergies,
   fetchPatientCareTeam,
   fetchPatientEncounters,
+  fetchPatientImmunizations,
   fetchPatientMedications,
   fetchPatientPrescriptions,
   fetchPatientProblems,
+  fetchPatientVitals,
   fetchPatients,
+  fetchPractitioner,
   PatientFeatureApiError,
 } from './api';
 import {
   normalizeClinicalBundle,
   normalizePatientHeader,
   normalizePatientSummaries,
+  normalizePractitionerName,
 } from './normalizers';
 import type {
   AllergyRow,
   CareTeamRow,
   EncounterRow,
+  ImmunizationRow,
   LoadState,
   MedicationRow,
   PatientFeatureError,
@@ -28,6 +33,7 @@ import type {
   PatientSummary,
   PrescriptionRow,
   ProblemRow,
+  VitalRow,
 } from './types';
 
 function toFeatureError(error: unknown): PatientFeatureError {
@@ -107,6 +113,8 @@ type ClinicalRowsByKind = {
   prescriptions: PrescriptionRow[];
   careTeam: CareTeamRow[];
   encounters: EncounterRow[];
+  immunizations: ImmunizationRow[];
+  vitals: VitalRow[];
 };
 
 function usePatientAllergies(patientId: string): LoadState<ClinicalRowsByKind['allergies']> {
@@ -171,6 +179,64 @@ function usePatientEncounters(patientId: string): LoadState<ClinicalRowsByKind['
   );
 }
 
+function usePatientImmunizations(
+  patientId: string,
+): LoadState<ClinicalRowsByKind['immunizations']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.immunizations(await fetchPatientImmunizations(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
+function usePatientVitals(patientId: string): LoadState<ClinicalRowsByKind['vitals']> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeClinicalBundle.vitals(await fetchPatientVitals(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
+}
+
+export function usePractitionerResolver() {
+  const cache = useRef<Map<string, string>>(new Map());
+  const [names, setNames] = useState<Map<string, string>>(new Map());
+
+  const resolve = useCallback((references: string[]) => {
+    const idsToFetch = references
+      .map((ref) => ref.replace(/^Practitioner\//, ''))
+      .filter((id) => !cache.current.has(id));
+
+    if (idsToFetch.length === 0) return;
+
+    for (const id of idsToFetch) {
+      cache.current.set(id, '');
+      void fetchPractitioner(id)
+        .then((data) => {
+          const name = normalizePractitionerName(data);
+          if (name) {
+            cache.current.set(id, name);
+            setNames(new Map(cache.current));
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const getName = useCallback(
+    (reference: string): string | undefined => {
+      const id = reference.replace(/^Practitioner\//, '');
+      return names.get(id) || undefined;
+    },
+    [names],
+  );
+
+  return { resolve, getName };
+}
+
 export function usePatientDashboard(patientId: string) {
   return {
     patient: usePatient(patientId),
@@ -180,5 +246,7 @@ export function usePatientDashboard(patientId: string) {
     prescriptions: usePatientPrescriptions(patientId),
     careTeam: usePatientCareTeam(patientId),
     encounters: usePatientEncounters(patientId),
+    immunizations: usePatientImmunizations(patientId),
+    vitals: usePatientVitals(patientId),
   };
 }

@@ -3,19 +3,24 @@ import type {
   FhirCareTeam,
   FhirCondition,
   FhirEncounter,
+  FhirImmunization,
   FhirMedicationRequest,
+  FhirObservation,
   FhirPatient,
+  FhirPractitioner,
   FhirReference,
 } from '@/types/fhir';
 import type {
   AllergyRow,
   CareTeamRow,
   EncounterRow,
+  ImmunizationRow,
   MedicationRow,
   PatientHeaderModel,
   PatientSummary,
   PrescriptionRow,
   ProblemRow,
+  VitalRow,
 } from './types';
 
 const UNKNOWN = 'Unknown';
@@ -401,6 +406,8 @@ export function normalizeCareTeam(value: unknown): CareTeamRow[] {
       : '';
     const member = participant.member as FhirReference | undefined;
     const name = displayReference(member);
+    const refStr = stringValue(member?.reference);
+    const practitionerRef = refStr?.startsWith('Practitioner/') ? refStr : undefined;
     return {
       id: `${resourceId(value, 'care-team')}-${index}`,
       name,
@@ -409,6 +416,7 @@ export function normalizeCareTeam(value: unknown): CareTeamRow[] {
       facility,
       since: displayDate(participant.period?.start),
       hasPartialData: !hasMeaningfulValue(name),
+      practitionerRef,
     };
   });
 }
@@ -427,12 +435,14 @@ export function normalizeEncounter(value: unknown): EncounterRow | null {
         .filter(Boolean)
         .join(', ')
     : '';
-  const participant = Array.isArray(value.participant)
-    ? value.participant
-        .map((item) => displayReference(item.individual, ''))
-        .filter(Boolean)
-        .join(', ')
-    : '';
+  const participants = Array.isArray(value.participant) ? value.participant : [];
+  const participant = participants
+    .map((item) => displayReference(item.individual, ''))
+    .filter(Boolean)
+    .join(', ');
+  const participantRefs = participants
+    .map((item) => stringValue((item.individual as FhirReference | undefined)?.reference))
+    .filter((ref): ref is string => !!ref && ref.startsWith('Practitioner/'));
   const start = displayDate(value.period?.start);
   return {
     id: resourceId(value, 'encounter'),
@@ -443,8 +453,85 @@ export function normalizeEncounter(value: unknown): EncounterRow | null {
     end: displayDate(value.period?.end),
     location: location || NOT_RECORDED,
     participant: participant || NOT_RECORDED,
+    participantRefs: participantRefs.length > 0 ? participantRefs : undefined,
     hasPartialData: !hasMeaningfulValue(type || UNKNOWN) || !hasMeaningfulValue(start),
   };
+}
+
+export function normalizeImmunization(value: unknown): ImmunizationRow | null {
+  if (!isResourceType<FhirImmunization>(value, 'Immunization')) return null;
+  const protocol = Array.isArray(value.protocolApplied) ? value.protocolApplied[0] : undefined;
+  const doseNum = protocol?.doseNumberPositiveInt ?? protocol?.doseNumberString;
+  const performer = Array.isArray(value.performer)
+    ? value.performer
+        .map((p) => displayReference(p.actor, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const row = {
+    id: resourceId(value, 'immunization'),
+    vaccine: displayCodeableConcept(value.vaccineCode),
+    date: displayDate(value.occurrenceDateTime ?? value.occurrenceString),
+    status: normalizeStatus(value.status),
+    dose: doseNum != null ? String(doseNum) : NOT_RECORDED,
+    site: displayCodeableConcept(value.site, NOT_RECORDED),
+    performer: performer || NOT_RECORDED,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.vaccine),
+  };
+}
+
+function observationValue(obs: FhirObservation): string {
+  if (obs.valueQuantity?.value != null) {
+    const unit = obs.valueQuantity.unit ?? obs.valueQuantity.code ?? '';
+    return `${obs.valueQuantity.value} ${unit}`.trim();
+  }
+  if (obs.valueString) return obs.valueString;
+  if (obs.valueCodeableConcept) return displayCodeableConcept(obs.valueCodeableConcept);
+
+  if (Array.isArray(obs.component) && obs.component.length > 0) {
+    return obs.component
+      .map((c) => {
+        const label = displayCodeableConcept(c.code, '');
+        const val =
+          c.valueQuantity?.value != null
+            ? `${c.valueQuantity.value} ${c.valueQuantity.unit ?? ''}`.trim()
+            : (c.valueString ?? '');
+        return label ? `${label}: ${val}` : val;
+      })
+      .filter(Boolean)
+      .join('; ');
+  }
+  return NOT_RECORDED;
+}
+
+export function normalizeVital(value: unknown): VitalRow | null {
+  if (!isResourceType<FhirObservation>(value, 'Observation')) return null;
+  const row = {
+    id: resourceId(value, 'vital'),
+    name: displayCodeableConcept(value.code),
+    value: observationValue(value),
+    date: displayDate(value.effectiveDateTime ?? value.issued),
+    status: normalizeStatus(value.status),
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.name) || !hasMeaningfulValue(row.value),
+  };
+}
+
+export function normalizePractitionerName(value: unknown): string | null {
+  if (!isResourceType<FhirPractitioner>(value, 'Practitioner')) return null;
+  const names = Array.isArray(value.name) ? value.name : [];
+  const first = names[0];
+  if (!first) return value.id ?? null;
+  const text = stringValue(first.text);
+  if (text) return text;
+  const given = stringArray(first.given).join(' ');
+  const family = stringValue(first.family);
+  return ([given, family].filter(Boolean).join(' ') || value.id) ?? null;
 }
 
 export const normalizeClinicalBundle = {
@@ -484,6 +571,23 @@ export const normalizeClinicalBundle = {
       if (!row) return [];
       const startRaw = stringValue(item.period?.start);
       const t = startRaw ? new Date(startRaw).getTime() : 0;
+      return [{ row, sortTime: Number.isNaN(t) ? 0 : t }];
+    });
+    withSort.sort((a, b) => b.sortTime - a.sortTime);
+    return withSort.map((entry) => entry.row);
+  },
+  immunizations: (bundle: unknown): ImmunizationRow[] =>
+    bundleEntriesOf<FhirImmunization>(bundle, 'Immunization').flatMap((item) => {
+      const row = normalizeImmunization(item);
+      return row ? [row] : [];
+    }),
+  vitals: (bundle: unknown): VitalRow[] => {
+    const entries = bundleEntriesOf<FhirObservation>(bundle, 'Observation');
+    const withSort = entries.flatMap((item) => {
+      const row = normalizeVital(item);
+      if (!row) return [];
+      const dateRaw = stringValue(item.effectiveDateTime ?? item.issued);
+      const t = dateRaw ? new Date(dateRaw).getTime() : 0;
       return [{ row, sortTime: Number.isNaN(t) ? 0 : t }];
     });
     withSort.sort((a, b) => b.sortTime - a.sortTime);

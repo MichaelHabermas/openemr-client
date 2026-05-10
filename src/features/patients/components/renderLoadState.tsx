@@ -1,14 +1,11 @@
 import type { ReactNode } from 'react';
 
 import type { LoadState } from '../types';
+import { SkeletonLoader } from './SkeletonLoader';
 
 export function renderLoadState<T>(state: LoadState<T>, emptyMessage: string): ReactNode | null {
   if (state.status === 'loading' || state.status === 'idle') {
-    return (
-      <p className='text-muted-foreground text-xs' aria-live='polite'>
-        Loading...
-      </p>
-    );
+    return <SkeletonLoader />;
   }
 
   if (state.status === 'error') {

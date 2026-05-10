@@ -9,14 +9,16 @@ function renderResult(node: ReturnType<typeof renderLoadState>) {
 }
 
 describe('renderLoadState', () => {
-  test('returns loading message for idle state', () => {
+  test('returns skeleton loader for idle state', () => {
     const html = renderResult(renderLoadState({ status: 'idle' }, 'No data.'));
-    expect(html).toContain('Loading...');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('animate-pulse');
   });
 
-  test('returns loading message for loading state', () => {
+  test('returns skeleton loader for loading state', () => {
     const html = renderResult(renderLoadState({ status: 'loading' }, 'No data.'));
-    expect(html).toContain('Loading...');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('animate-pulse');
   });
 
   test('returns error message for error state', () => {

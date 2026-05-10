@@ -174,5 +174,22 @@ export function createApp({ config, services }: CreateAppOptions) {
 
   app.get('/api/patients/:patientId/encounters', validatePid, patientClinicalRoute('encounters'));
 
+  app.get(
+    '/api/patients/:patientId/immunizations',
+    validatePid,
+    patientClinicalRoute('immunizations'),
+  );
+
+  app.get('/api/patients/:patientId/vitals', validatePid, patientClinicalRoute('vitals'));
+
+  app.get(
+    '/api/practitioners/:practitionerId',
+    protectedFhirRoute('fetchPractitioner', (token, req) => {
+      const { practitionerId } = req.params;
+      const id = Array.isArray(practitionerId) ? practitionerId[0] : practitionerId;
+      return services.fhir.fetchPractitioner(token, id);
+    }),
+  );
+
   return app;
 }

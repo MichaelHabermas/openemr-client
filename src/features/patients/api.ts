@@ -85,3 +85,15 @@ export function fetchPatientCareTeam(patientId: string): Promise<unknown> {
 export function fetchPatientEncounters(patientId: string): Promise<unknown> {
   return getJson(patientPath(patientId, '/encounters'));
 }
+
+export function fetchPatientImmunizations(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/immunizations'));
+}
+
+export function fetchPatientVitals(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/vitals'));
+}
+
+export function fetchPractitioner(practitionerId: string): Promise<unknown> {
+  return getJson(`/api/practitioners/${encodeURIComponent(practitionerId)}`);
+}

@@ -8,7 +8,13 @@ const resourceTypesByKey = {
   prescriptions: 'MedicationRequest',
   'care-team': 'CareTeam',
   encounters: 'Encounter',
+  immunizations: 'Immunization',
+  vitals: 'Observation',
 } as const;
+
+const categoryByKey: Partial<Record<ClinicalResourceKey, string>> = {
+  vitals: 'vital-signs',
+};
 
 export type ClinicalResourceKey = keyof typeof resourceTypesByKey;
 
@@ -20,6 +26,7 @@ export interface FhirService {
     resourceKey: ClinicalResourceKey,
     patientId: string,
   ): Promise<unknown>;
+  fetchPractitioner(accessToken: string, practitionerId: string): Promise<unknown>;
 }
 
 export function createFhirService(config: AppConfig): FhirService {
@@ -51,6 +58,15 @@ export function createFhirService(config: AppConfig): FhirService {
       const resourceType = resourceTypesByKey[resourceKey];
       const url = new URL(resourceType, fhirBaseUrl);
       url.searchParams.set('patient', patientId);
+      const category = categoryByKey[resourceKey];
+      if (category) {
+        url.searchParams.set('category', category);
+      }
+      return getFhirResource(accessToken, url);
+    },
+
+    async fetchPractitioner(accessToken: string, practitionerId: string) {
+      const url = new URL(`Practitioner/${encodeURIComponent(practitionerId)}`, fhirBaseUrl);
       return getFhirResource(accessToken, url);
     },
   };

@@ -80,6 +80,7 @@ export interface CareTeamRow {
   facility: string;
   since: string;
   hasPartialData: boolean;
+  practitionerRef?: string;
 }
 
 export interface EncounterRow {
@@ -91,5 +92,26 @@ export interface EncounterRow {
   end: string;
   location: string;
   participant: string;
+  hasPartialData: boolean;
+  participantRefs?: string[];
+}
+
+export interface ImmunizationRow {
+  id: string;
+  vaccine: string;
+  date: string;
+  status: string;
+  dose: string;
+  site: string;
+  performer: string;
+  hasPartialData: boolean;
+}
+
+export interface VitalRow {
+  id: string;
+  name: string;
+  value: string;
+  date: string;
+  status: string;
   hasPartialData: boolean;
 }
