@@ -79,6 +79,7 @@ function protectedFhirRoute(
 
 export function createApp({ config, services }: CreateAppOptions) {
   const app = express();
+  app.set('trust proxy', 1);
 
   app.use(
     cors({
