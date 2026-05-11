@@ -30,6 +30,30 @@ export function AppLayout() {
               }>
               Patients
             </NavLink>
+            <NavLink
+              to='/directory'
+              className={({ isActive }) =>
+                [
+                  'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-secondary text-secondary-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                ].join(' ')
+              }>
+              Directory
+            </NavLink>
+            <NavLink
+              to='/medications'
+              className={({ isActive }) =>
+                [
+                  'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-secondary text-secondary-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                ].join(' ')
+              }>
+              Medications
+            </NavLink>
           </nav>
         </div>
       </header>

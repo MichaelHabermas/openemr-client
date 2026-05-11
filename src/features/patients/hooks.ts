@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DependencyList } from 'react';
 
 import {
+  createAllergy,
+  createAppointment,
+  createProblem,
   fetchEncounterDetail,
   fetchEncounterObservations,
   fetchPatient,
@@ -28,6 +31,8 @@ import {
   fetchPatientVitals,
   fetchPatients,
   fetchPractitioner,
+  fetchPatientProvenance,
+  fetchPractitionerRoles,
   PatientFeatureApiError,
 } from './api';
 import {
@@ -35,6 +40,8 @@ import {
   normalizePatientHeader,
   normalizePatientSummaries,
   normalizePractitionerName,
+  normalizePractitionerSpecialty,
+  normalizeProvenanceBundle,
 } from './normalizers';
 import type {
   AllergyRow,
@@ -58,6 +65,7 @@ import type {
   PrescriptionRow,
   ProblemRow,
   ProcedureRow,
+  ProvenanceRecord,
   RelatedPersonRow,
   ServiceRequestRow,
   SocialHistoryRow,
@@ -419,7 +427,9 @@ export function useEncounterObservations(
 
 export function usePractitionerResolver() {
   const cache = useRef<Map<string, string>>(new Map());
+  const specialtyCache = useRef<Map<string, string>>(new Map());
   const [names, setNames] = useState<Map<string, string>>(new Map());
+  const [specialties, setSpecialties] = useState<Map<string, string>>(new Map());
 
   const resolve = useCallback((references: string[]) => {
     const idsToFetch = references
@@ -430,12 +440,24 @@ export function usePractitionerResolver() {
 
     for (const id of idsToFetch) {
       cache.current.set(id, '');
+      specialtyCache.current.set(id, '');
+
       void fetchPractitioner(id)
         .then((data) => {
           const name = normalizePractitionerName(data);
           if (name) {
             cache.current.set(id, name);
             setNames(new Map(cache.current));
+          }
+        })
+        .catch(() => {});
+
+      void fetchPractitionerRoles(id)
+        .then((data) => {
+          const specialty = normalizePractitionerSpecialty(data);
+          if (specialty) {
+            specialtyCache.current.set(id, specialty);
+            setSpecialties(new Map(specialtyCache.current));
           }
         })
         .catch(() => {});
@@ -450,7 +472,66 @@ export function usePractitionerResolver() {
     [names],
   );
 
-  return { resolve, getName };
+  const getSpecialty = useCallback(
+    (reference: string): string | undefined => {
+      const id = reference.replace(/^Practitioner\//, '');
+      return specialties.get(id) || undefined;
+    },
+    [specialties],
+  );
+
+  return { resolve, getName, getSpecialty };
+}
+
+export type MutationState =
+  | { status: 'idle' }
+  | { status: 'submitting' }
+  | { status: 'success' }
+  | { status: 'error'; error: PatientFeatureError };
+
+function useMutation<TArgs extends unknown[]>(
+  mutateFn: (...args: TArgs) => Promise<unknown>,
+): { mutate: (...args: TArgs) => void; state: MutationState; reset: () => void } {
+  const [state, setState] = useState<MutationState>({ status: 'idle' });
+
+  const mutate = useCallback(
+    (...args: TArgs) => {
+      setState({ status: 'submitting' });
+      void mutateFn(...args)
+        .then(() => setState({ status: 'success' }))
+        .catch((error: unknown) => setState({ status: 'error', error: toFeatureError(error) }));
+    },
+    [mutateFn],
+  );
+
+  const reset = useCallback(() => setState({ status: 'idle' }), []);
+
+  return { mutate, state, reset };
+}
+
+export function useCreateAllergy(patientId: string) {
+  const mutateFn = useCallback((body: unknown) => createAllergy(patientId, body), [patientId]);
+  return useMutation(mutateFn);
+}
+
+export function useCreateProblem(patientId: string) {
+  const mutateFn = useCallback((body: unknown) => createProblem(patientId, body), [patientId]);
+  return useMutation(mutateFn);
+}
+
+export function useCreateAppointment(patientId: string) {
+  const mutateFn = useCallback((body: unknown) => createAppointment(patientId, body), [patientId]);
+  return useMutation(mutateFn);
+}
+
+export function usePatientProvenance(patientId: string): LoadState<ProvenanceRecord[]> {
+  const enabled = Boolean(patientId.trim());
+  return useAsyncPatientState(
+    async () => normalizeProvenanceBundle(await fetchPatientProvenance(patientId)),
+    (rows) => rows.length === 0,
+    [patientId],
+    enabled,
+  );
 }
 
 export function usePatientDashboard(patientId: string) {
@@ -477,5 +558,6 @@ export function usePatientDashboard(patientId: string) {
     devices: usePatientDevices(patientId),
     serviceRequests: usePatientServiceRequests(patientId),
     relatedPersons: usePatientRelatedPersons(patientId),
+    provenance: usePatientProvenance(patientId),
   };
 }

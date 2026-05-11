@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { LoadState, SocialHistoryRow } from '../types';
 
 interface SocialHistoryCardProps {
   state: LoadState<SocialHistoryRow[]>;
+  provenanceBadge?: ReactNode;
 }
 
 const columns: ColumnDef<SocialHistoryRow>[] = [
@@ -12,13 +14,14 @@ const columns: ColumnDef<SocialHistoryRow>[] = [
   { header: 'Status', accessor: (r) => r.status },
 ];
 
-export function SocialHistoryCard({ state }: SocialHistoryCardProps) {
+export function SocialHistoryCard({ state, provenanceBadge }: SocialHistoryCardProps) {
   return (
     <ClinicalTable
       title='Social History'
       state={state}
       emptyMessage='No social history recorded.'
       columns={columns}
+      provenanceBadge={provenanceBadge}
     />
   );
 }

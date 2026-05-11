@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { FamilyHistoryRow, LoadState } from '../types';
 
 interface FamilyHistoryCardProps {
   state: LoadState<FamilyHistoryRow[]>;
+  provenanceBadge?: ReactNode;
 }
 
 const columns: ColumnDef<FamilyHistoryRow>[] = [
@@ -13,13 +15,14 @@ const columns: ColumnDef<FamilyHistoryRow>[] = [
   { header: 'Status', accessor: (r) => r.status },
 ];
 
-export function FamilyHistoryCard({ state }: FamilyHistoryCardProps) {
+export function FamilyHistoryCard({ state, provenanceBadge }: FamilyHistoryCardProps) {
   return (
     <ClinicalTable
       title='Family History'
       state={state}
       emptyMessage='No family history recorded.'
       columns={columns}
+      provenanceBadge={provenanceBadge}
     />
   );
 }

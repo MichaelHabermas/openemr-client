@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { GoalRow, LoadState } from '../types';
 
 interface GoalsCardProps {
   state: LoadState<GoalRow[]>;
+  provenanceBadge?: ReactNode;
 }
 
 const columns: ColumnDef<GoalRow>[] = [
@@ -14,13 +16,14 @@ const columns: ColumnDef<GoalRow>[] = [
   { header: 'Target Date', accessor: (r) => r.targetDate },
 ];
 
-export function GoalsCard({ state }: GoalsCardProps) {
+export function GoalsCard({ state, provenanceBadge }: GoalsCardProps) {
   return (
     <ClinicalTable
       title='Goals'
       state={state}
       emptyMessage='No goals recorded.'
       columns={columns}
+      provenanceBadge={provenanceBadge}
     />
   );
 }

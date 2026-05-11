@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AllergiesCard } from './AllergiesCard';
+import { ProvenanceBadge } from './ProvenanceBadge';
 import { AppointmentsCard } from './AppointmentsCard';
 import { CarePlansCard } from './CarePlansCard';
 import { CareTeamCard } from './CareTeamCard';
@@ -41,6 +42,7 @@ import type {
   PrescriptionRow,
   ProblemRow,
   ProcedureRow,
+  ProvenanceRecord,
   RelatedPersonRow,
   ServiceRequestRow,
   SocialHistoryRow,
@@ -84,6 +86,8 @@ interface PatientDashboardShellProps {
   devices: LoadState<DeviceRow[]>;
   serviceRequests: LoadState<ServiceRequestRow[]>;
   relatedPersons: LoadState<RelatedPersonRow[]>;
+  provenance: LoadState<ProvenanceRecord[]>;
+  patientId?: string;
 }
 
 export function PatientDashboardShell({
@@ -109,7 +113,14 @@ export function PatientDashboardShell({
   devices,
   serviceRequests,
   relatedPersons,
+  provenance,
+  patientId,
 }: PatientDashboardShellProps) {
+  const provenanceRecords = provenance.status === 'success' ? provenance.data : [];
+  const badge = (resourceType: string) =>
+    provenanceRecords.length > 0 ? (
+      <ProvenanceBadge records={provenanceRecords} resourceType={resourceType} />
+    ) : undefined;
   const patientName =
     patient.status === 'success' && patient.data ? patient.data.displayName : null;
 
@@ -148,43 +159,61 @@ export function PatientDashboardShell({
       {activeTab === 'Dashboard' ? (
         <>
           <div className='grid grid-cols-1 gap-x-6 md:grid-cols-3'>
-            <AllergiesCard state={allergies} />
-            <ProblemListCard state={problems} />
-            <MedicationsCard state={medications} />
+            <AllergiesCard
+              state={allergies}
+              patientId={patientId}
+              provenanceBadge={badge('AllergyIntolerance')}
+            />
+            <ProblemListCard
+              state={problems}
+              patientId={patientId}
+              provenanceBadge={badge('Condition')}
+            />
+            <MedicationsCard state={medications} provenanceBadge={badge('MedicationRequest')} />
           </div>
 
-          <PrescriptionsCard state={prescriptions} />
-          <VitalsCard state={vitals} />
-          <LabResultsCard state={labs} />
-          <ImmunizationsCard state={immunizations} />
-          <InsuranceCard state={coverage} />
-          <CareTeamCard state={careTeam} />
-          <EncountersCard state={encounters} />
-          <GoalsCard state={goals} />
-          <CarePlansCard state={carePlans} />
-          <AppointmentsCard state={appointments} />
-          <SocialHistoryCard state={socialHistory} />
-          <FamilyHistoryCard state={familyHistory} />
-          <DevicesCard state={devices} />
-          <ServiceRequestsCard state={serviceRequests} />
-          <RelatedPersonsCard state={relatedPersons} />
+          <PrescriptionsCard state={prescriptions} provenanceBadge={badge('MedicationRequest')} />
+          <VitalsCard state={vitals} provenanceBadge={badge('Observation')} />
+          <LabResultsCard state={labs} provenanceBadge={badge('Observation')} />
+          <ImmunizationsCard state={immunizations} provenanceBadge={badge('Immunization')} />
+          <InsuranceCard state={coverage} provenanceBadge={badge('Coverage')} />
+          <CareTeamCard state={careTeam} provenanceBadge={badge('CareTeam')} />
+          <EncountersCard state={encounters} provenanceBadge={badge('Encounter')} />
+          <GoalsCard state={goals} provenanceBadge={badge('Goal')} />
+          <CarePlansCard state={carePlans} provenanceBadge={badge('CarePlan')} />
+          <AppointmentsCard
+            state={appointments}
+            patientId={patientId}
+            provenanceBadge={badge('Appointment')}
+          />
+          <SocialHistoryCard state={socialHistory} provenanceBadge={badge('Observation')} />
+          <FamilyHistoryCard state={familyHistory} provenanceBadge={badge('FamilyMemberHistory')} />
+          <DevicesCard state={devices} provenanceBadge={badge('Device')} />
+          <ServiceRequestsCard state={serviceRequests} provenanceBadge={badge('ServiceRequest')} />
+          <RelatedPersonsCard state={relatedPersons} provenanceBadge={badge('RelatedPerson')} />
         </>
       ) : activeTab === 'History' ? (
-        <ProceduresCard state={procedures} />
+        <ProceduresCard state={procedures} provenanceBadge={badge('Procedure')} />
       ) : activeTab === 'Assessments' ? (
-        <DiagnosticReportsCard state={diagnosticReports} />
+        <DiagnosticReportsCard
+          state={diagnosticReports}
+          provenanceBadge={badge('DiagnosticReport')}
+        />
       ) : activeTab === 'Report' ? (
-        <DiagnosticReportsCard state={diagnosticReports} />
+        <DiagnosticReportsCard
+          state={diagnosticReports}
+          provenanceBadge={badge('DiagnosticReport')}
+        />
       ) : activeTab === 'Documents' ? (
-        <DocumentsCard state={documents} />
+        <DocumentsCard state={documents} provenanceBadge={badge('DocumentReference')} />
       ) : activeTab === 'Transactions' ? (
-        <EncountersCard state={encounters} />
+        <EncountersCard state={encounters} provenanceBadge={badge('Encounter')} />
       ) : activeTab === 'Issues' ? (
-        <ProblemListCard state={problems} />
+        <ProblemListCard state={problems} provenanceBadge={badge('Condition')} />
       ) : activeTab === 'Ledger' ? (
-        <InsuranceCard state={coverage} />
+        <InsuranceCard state={coverage} provenanceBadge={badge('Coverage')} />
       ) : activeTab === 'External Data' ? (
-        <DocumentsCard state={documents} />
+        <DocumentsCard state={documents} provenanceBadge={badge('DocumentReference')} />
       ) : null}
     </div>
   );

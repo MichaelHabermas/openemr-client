@@ -50,6 +50,20 @@ async function getJson(path: string): Promise<unknown> {
   return res.json() as Promise<unknown>;
 }
 
+async function postJson(path: string, body: unknown): Promise<unknown> {
+  const res = await apiFetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errorBody = await safeErrorBody(res);
+    const code = typeof errorBody.error === 'string' ? errorBody.error : undefined;
+    throw new PatientFeatureApiError(safeMessage(res.status, errorBody), res.status, code);
+  }
+  return res.json() as Promise<unknown>;
+}
+
 function patientPath(patientId: string, suffix = ''): string {
   return `/api/patients/${encodeURIComponent(patientId)}${suffix}`;
 }
@@ -173,4 +187,24 @@ export async function fetchDocumentContent(patientId: string, documentId: string
 
 export function fetchPractitioner(practitionerId: string): Promise<unknown> {
   return getJson(`/api/practitioners/${encodeURIComponent(practitionerId)}`);
+}
+
+export function fetchPractitionerRoles(practitionerId: string): Promise<unknown> {
+  return getJson(`/api/practitioners/${encodeURIComponent(practitionerId)}/roles`);
+}
+
+export function createAllergy(patientId: string, body: unknown): Promise<unknown> {
+  return postJson(patientPath(patientId, '/allergies'), body);
+}
+
+export function createProblem(patientId: string, body: unknown): Promise<unknown> {
+  return postJson(patientPath(patientId, '/problems'), body);
+}
+
+export function createAppointment(patientId: string, body: unknown): Promise<unknown> {
+  return postJson(patientPath(patientId, '/appointments'), body);
+}
+
+export function fetchPatientProvenance(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/provenance'));
 }

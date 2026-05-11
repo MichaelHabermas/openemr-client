@@ -14,6 +14,8 @@ interface ClinicalSectionProps<TRow extends PartialRow> {
   state: LoadState<TRow[]>;
   emptyMessage: string;
   renderRow: (row: TRow) => ReactNode;
+  provenanceBadge?: ReactNode;
+  onAdd?: () => void;
 }
 
 export function ClinicalSection<TRow extends PartialRow>({
@@ -22,13 +24,17 @@ export function ClinicalSection<TRow extends PartialRow>({
   state,
   emptyMessage,
   renderRow,
+  provenanceBadge,
+  onAdd,
 }: ClinicalSectionProps<TRow>) {
   return (
     <ClinicalSectionWrapper
       title={title}
       titleId={titleId}
       state={state}
-      emptyMessage={emptyMessage}>
+      emptyMessage={emptyMessage}
+      provenanceBadge={provenanceBadge}
+      onAdd={onAdd}>
       {state.status === 'success' ? (
         <ul className='space-y-0.5'>
           {state.data.map((row) => (

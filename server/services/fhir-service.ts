@@ -48,6 +48,14 @@ export interface FhirService {
     accessToken: string,
     documentId: string,
   ): Promise<{ contentType: string; data: Buffer }>;
+  fetchLocationBundle(accessToken: string): Promise<unknown>;
+  fetchOrganizationBundle(accessToken: string): Promise<unknown>;
+  fetchMedicationBundle(accessToken: string): Promise<unknown>;
+  fetchPractitionerRoles(accessToken: string, practitionerId: string): Promise<unknown>;
+  createAllergyIntolerance(accessToken: string, body: unknown): Promise<unknown>;
+  createCondition(accessToken: string, body: unknown): Promise<unknown>;
+  createAppointment(accessToken: string, body: unknown): Promise<unknown>;
+  fetchPatientProvenance(accessToken: string, patientId: string): Promise<unknown>;
 }
 
 export function createFhirService(config: AppConfig): FhirService {
@@ -56,6 +64,16 @@ export function createFhirService(config: AppConfig): FhirService {
   async function getFhirResource(accessToken: string, url: URL) {
     const res = await axios.get(url.toString(), {
       headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return res.data;
+  }
+
+  async function postFhirResource(accessToken: string, url: URL, body: unknown) {
+    const res = await axios.post(url.toString(), body, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/fhir+json',
+      },
     });
     return res.data;
   }
@@ -99,6 +117,48 @@ export function createFhirService(config: AppConfig): FhirService {
     async fetchEncounterObservations(accessToken: string, encounterId: string) {
       const url = new URL('Observation', fhirBaseUrl);
       url.searchParams.set('encounter', `Encounter/${encounterId}`);
+      return getFhirResource(accessToken, url);
+    },
+
+    async fetchLocationBundle(accessToken: string) {
+      const url = new URL('Location', fhirBaseUrl);
+      return getFhirResource(accessToken, url);
+    },
+
+    async fetchOrganizationBundle(accessToken: string) {
+      const url = new URL('Organization', fhirBaseUrl);
+      return getFhirResource(accessToken, url);
+    },
+
+    async fetchMedicationBundle(accessToken: string) {
+      const url = new URL('Medication', fhirBaseUrl);
+      return getFhirResource(accessToken, url);
+    },
+
+    async fetchPractitionerRoles(accessToken: string, practitionerId: string) {
+      const url = new URL('PractitionerRole', fhirBaseUrl);
+      url.searchParams.set('practitioner', `Practitioner/${practitionerId}`);
+      return getFhirResource(accessToken, url);
+    },
+
+    async createAllergyIntolerance(accessToken: string, body: unknown) {
+      const url = new URL('AllergyIntolerance', fhirBaseUrl);
+      return postFhirResource(accessToken, url, body);
+    },
+
+    async createCondition(accessToken: string, body: unknown) {
+      const url = new URL('Condition', fhirBaseUrl);
+      return postFhirResource(accessToken, url, body);
+    },
+
+    async createAppointment(accessToken: string, body: unknown) {
+      const url = new URL('Appointment', fhirBaseUrl);
+      return postFhirResource(accessToken, url, body);
+    },
+
+    async fetchPatientProvenance(accessToken: string, patientId: string) {
+      const url = new URL('Provenance', fhirBaseUrl);
+      url.searchParams.set('patient', patientId);
       return getFhirResource(accessToken, url);
     },
 

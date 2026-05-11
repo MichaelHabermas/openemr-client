@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { LoadState, ServiceRequestRow } from '../types';
 
 interface ServiceRequestsCardProps {
   state: LoadState<ServiceRequestRow[]>;
+  provenanceBadge?: ReactNode;
 }
 
 const columns: ColumnDef<ServiceRequestRow>[] = [
@@ -14,13 +16,14 @@ const columns: ColumnDef<ServiceRequestRow>[] = [
   { header: 'Date', accessor: (r) => r.authoredOn },
 ];
 
-export function ServiceRequestsCard({ state }: ServiceRequestsCardProps) {
+export function ServiceRequestsCard({ state, provenanceBadge }: ServiceRequestsCardProps) {
   return (
     <ClinicalTable
       title='Service Requests'
       state={state}
       emptyMessage='No service requests recorded.'
       columns={columns}
+      provenanceBadge={provenanceBadge}
     />
   );
 }

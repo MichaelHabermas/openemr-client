@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
@@ -5,6 +6,7 @@ import type { EncounterRow, LoadState } from '../types';
 
 interface EncountersCardProps {
   state: LoadState<EncounterRow[]>;
+  provenanceBadge?: ReactNode;
 }
 
 const columns: ColumnDef<EncounterRow>[] = [
@@ -17,7 +19,7 @@ const columns: ColumnDef<EncounterRow>[] = [
   { header: 'Status', accessor: (e) => e.status },
 ];
 
-export function EncountersCard({ state }: EncountersCardProps) {
+export function EncountersCard({ state, provenanceBadge }: EncountersCardProps) {
   const { patientId } = useParams();
 
   return (
@@ -27,6 +29,7 @@ export function EncountersCard({ state }: EncountersCardProps) {
       emptyMessage='No encounters recorded.'
       columns={columns}
       rowHref={patientId ? (row) => `/patients/${patientId}/encounters/${row.id}` : undefined}
+      provenanceBadge={provenanceBadge}
     />
   );
 }

@@ -358,3 +358,73 @@ export interface FhirDiagnosticReport {
   result?: FhirReference[];
   conclusion?: string;
 }
+
+export interface FhirLocation {
+  resourceType: 'Location';
+  id?: string;
+  status?: string;
+  name?: string;
+  description?: string;
+  type?: FhirCodeableConcept[];
+  telecom?: Array<{ system?: string; value?: string; use?: string }>;
+  address?: {
+    text?: string;
+    line?: string[];
+    city?: string;
+    state?: string;
+    postalCode?: string;
+  };
+  managingOrganization?: FhirReference;
+}
+
+export interface FhirOrganization {
+  resourceType: 'Organization';
+  id?: string;
+  active?: boolean;
+  name?: string;
+  type?: FhirCodeableConcept[];
+  telecom?: Array<{ system?: string; value?: string; use?: string }>;
+  address?: Array<{
+    text?: string;
+    line?: string[];
+    city?: string;
+    state?: string;
+    postalCode?: string;
+  }>;
+}
+
+export interface FhirPractitionerRole {
+  resourceType: 'PractitionerRole';
+  id?: string;
+  active?: boolean;
+  practitioner?: FhirReference;
+  organization?: FhirReference;
+  code?: FhirCodeableConcept[];
+  specialty?: FhirCodeableConcept[];
+  location?: FhirReference[];
+}
+
+export interface FhirMedication {
+  resourceType: 'Medication';
+  id?: string;
+  code?: FhirCodeableConcept;
+  status?: string;
+  manufacturer?: FhirReference;
+  form?: FhirCodeableConcept;
+  amount?: {
+    numerator?: { value?: number; unit?: string };
+    denominator?: { value?: number; unit?: string };
+  };
+}
+
+export interface FhirProvenance {
+  resourceType: 'Provenance';
+  id?: string;
+  target?: FhirReference[];
+  recorded?: string;
+  agent?: Array<{
+    type?: FhirCodeableConcept;
+    who?: FhirReference;
+  }>;
+  activity?: FhirCodeableConcept;
+}

@@ -1,9 +1,10 @@
-import { memo } from 'react';
+import { memo, type ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { LoadState, PrescriptionRow } from '../types';
 
 interface PrescriptionsCardProps {
   state: LoadState<PrescriptionRow[]>;
+  provenanceBadge?: ReactNode;
 }
 
 const columns: ColumnDef<PrescriptionRow>[] = [
@@ -16,6 +17,7 @@ const columns: ColumnDef<PrescriptionRow>[] = [
 
 export const PrescriptionsCard = memo(function PrescriptionsCard({
   state,
+  provenanceBadge,
 }: PrescriptionsCardProps) {
   return (
     <ClinicalTable
@@ -23,6 +25,7 @@ export const PrescriptionsCard = memo(function PrescriptionsCard({
       state={state}
       emptyMessage='No prescriptions recorded.'
       columns={columns}
+      provenanceBadge={provenanceBadge}
     />
   );
 });

@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { ImmunizationRow, LoadState } from '../types';
 
 interface ImmunizationsCardProps {
   state: LoadState<ImmunizationRow[]>;
+  provenanceBadge?: ReactNode;
 }
 
 const columns: ColumnDef<ImmunizationRow>[] = [
@@ -14,13 +16,14 @@ const columns: ColumnDef<ImmunizationRow>[] = [
   { header: 'Performer', accessor: (r) => r.performer },
 ];
 
-export function ImmunizationsCard({ state }: ImmunizationsCardProps) {
+export function ImmunizationsCard({ state, provenanceBadge }: ImmunizationsCardProps) {
   return (
     <ClinicalTable
       title='Immunizations'
       state={state}
       emptyMessage='No immunizations recorded.'
       columns={columns}
+      provenanceBadge={provenanceBadge}
     />
   );
 }

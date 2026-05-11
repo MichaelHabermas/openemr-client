@@ -291,5 +291,65 @@ export function createApp({ config, services }: CreateAppOptions) {
     }),
   );
 
+  app.get(
+    '/api/practitioners/:practitionerId/roles',
+    protectedFhirRoute('fetchPractitionerRoles', (token, req) => {
+      const { practitionerId } = req.params;
+      const id = Array.isArray(practitionerId) ? practitionerId[0] : practitionerId;
+      return services.fhir.fetchPractitionerRoles(token, id);
+    }),
+  );
+
+  app.get(
+    '/api/locations',
+    protectedFhirRoute('fetchLocationBundle', (token) => services.fhir.fetchLocationBundle(token)),
+  );
+
+  app.get(
+    '/api/organizations',
+    protectedFhirRoute('fetchOrganizationBundle', (token) =>
+      services.fhir.fetchOrganizationBundle(token),
+    ),
+  );
+
+  app.get(
+    '/api/medications-catalog',
+    protectedFhirRoute('fetchMedicationBundle', (token) =>
+      services.fhir.fetchMedicationBundle(token),
+    ),
+  );
+
+  app.post(
+    '/api/patients/:patientId/allergies',
+    validatePid,
+    protectedFhirRoute('createAllergyIntolerance', (token, req) =>
+      services.fhir.createAllergyIntolerance(token, req.body),
+    ),
+  );
+
+  app.post(
+    '/api/patients/:patientId/problems',
+    validatePid,
+    protectedFhirRoute('createCondition', (token, req) =>
+      services.fhir.createCondition(token, req.body),
+    ),
+  );
+
+  app.post(
+    '/api/patients/:patientId/appointments',
+    validatePid,
+    protectedFhirRoute('createAppointment', (token, req) =>
+      services.fhir.createAppointment(token, req.body),
+    ),
+  );
+
+  app.get(
+    '/api/patients/:patientId/provenance',
+    validatePid,
+    protectedFhirRoute('fetchPatientProvenance', (token, req) =>
+      services.fhir.fetchPatientProvenance(token, patientIdParam(req)),
+    ),
+  );
+
   return app;
 }

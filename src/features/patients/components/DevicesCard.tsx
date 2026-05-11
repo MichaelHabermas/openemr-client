@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { DeviceRow, LoadState } from '../types';
 
 interface DevicesCardProps {
   state: LoadState<DeviceRow[]>;
+  provenanceBadge?: ReactNode;
 }
 
 const columns: ColumnDef<DeviceRow>[] = [
@@ -13,13 +15,14 @@ const columns: ColumnDef<DeviceRow>[] = [
   { header: 'Expiration', accessor: (r) => r.expirationDate },
 ];
 
-export function DevicesCard({ state }: DevicesCardProps) {
+export function DevicesCard({ state, provenanceBadge }: DevicesCardProps) {
   return (
     <ClinicalTable
       title='Devices'
       state={state}
       emptyMessage='No devices recorded.'
       columns={columns}
+      provenanceBadge={provenanceBadge}
     />
   );
 }

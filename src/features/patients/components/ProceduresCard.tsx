@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import type { LoadState, ProcedureRow } from '../types';
 
 interface ProceduresCardProps {
   state: LoadState<ProcedureRow[]>;
+  provenanceBadge?: ReactNode;
 }
 
 const columns: ColumnDef<ProcedureRow>[] = [
@@ -13,13 +15,14 @@ const columns: ColumnDef<ProcedureRow>[] = [
   { header: 'Reason', accessor: (r) => r.reason },
 ];
 
-export function ProceduresCard({ state }: ProceduresCardProps) {
+export function ProceduresCard({ state, provenanceBadge }: ProceduresCardProps) {
   return (
     <ClinicalTable
       title='Procedures'
       state={state}
       emptyMessage='No procedures recorded.'
       columns={columns}
+      provenanceBadge={provenanceBadge}
     />
   );
 }

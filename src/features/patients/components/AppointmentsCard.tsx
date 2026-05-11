@@ -1,8 +1,12 @@
+import { useState, type ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
+import { CreateAppointmentForm } from './CreateAppointmentForm';
 import type { AppointmentRow, LoadState } from '../types';
 
 interface AppointmentsCardProps {
   state: LoadState<AppointmentRow[]>;
+  patientId?: string;
+  provenanceBadge?: ReactNode;
 }
 
 const columns: ColumnDef<AppointmentRow>[] = [
@@ -14,13 +18,26 @@ const columns: ColumnDef<AppointmentRow>[] = [
   { header: 'Participant', accessor: (r) => r.participant },
 ];
 
-export function AppointmentsCard({ state }: AppointmentsCardProps) {
+export function AppointmentsCard({ state, patientId, provenanceBadge }: AppointmentsCardProps) {
+  const [showForm, setShowForm] = useState(false);
+
   return (
-    <ClinicalTable
-      title='Appointments'
-      state={state}
-      emptyMessage='No appointments recorded.'
-      columns={columns}
-    />
+    <>
+      <ClinicalTable
+        title='Appointments'
+        state={state}
+        emptyMessage='No appointments recorded.'
+        columns={columns}
+        onAdd={patientId ? () => setShowForm(true) : undefined}
+        provenanceBadge={provenanceBadge}
+      />
+      {showForm && patientId ? (
+        <CreateAppointmentForm
+          patientId={patientId}
+          onSuccess={() => setShowForm(false)}
+          onCancel={() => setShowForm(false)}
+        />
+      ) : null}
+    </>
   );
 }

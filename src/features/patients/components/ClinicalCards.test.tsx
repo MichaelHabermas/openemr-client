@@ -30,6 +30,7 @@ import type {
   PatientSummary,
   PrescriptionRow,
   ProcedureRow,
+  ProvenanceRecord,
   RelatedPersonRow,
   ServiceRequestRow,
   SocialHistoryRow,
@@ -329,6 +330,7 @@ describe('PatientDashboardShell', () => {
           devices={success<DeviceRow[]>([])}
           serviceRequests={success<ServiceRequestRow[]>([])}
           relatedPersons={success<RelatedPersonRow[]>([])}
+          provenance={success<ProvenanceRecord[]>([])}
         />
       </MemoryRouter>,
     );

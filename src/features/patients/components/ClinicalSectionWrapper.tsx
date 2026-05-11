@@ -1,5 +1,5 @@
 import { useId, useState, type ReactNode } from 'react';
-import { ChevronDown, ChevronRight, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pencil, Plus } from 'lucide-react';
 
 import type { LoadState } from '../types';
 import { renderLoadState } from './renderLoadState';
@@ -11,6 +11,8 @@ interface ClinicalSectionWrapperProps {
   emptyMessage: string;
   children: ReactNode;
   defaultCollapsed?: boolean;
+  provenanceBadge?: ReactNode;
+  onAdd?: () => void;
 }
 
 export function ClinicalSectionWrapper({
@@ -20,6 +22,8 @@ export function ClinicalSectionWrapper({
   emptyMessage,
   children,
   defaultCollapsed = false,
+  provenanceBadge,
+  onAdd,
 }: ClinicalSectionWrapperProps) {
   const generatedId = useId();
   const resolvedTitleId = titleId ?? generatedId;
@@ -46,7 +50,20 @@ export function ClinicalSectionWrapper({
             {count != null ? ` [${count}]` : ''}
           </span>
         </button>
-        <Pencil className='text-muted-foreground h-3.5 w-3.5 opacity-25' aria-hidden='true' />
+        <span className='flex items-center gap-2'>
+          {provenanceBadge}
+          {onAdd ? (
+            <button
+              type='button'
+              onClick={onAdd}
+              className='text-primary hover:bg-accent flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium'>
+              <Plus className='h-3 w-3' aria-hidden='true' />
+              Add
+            </button>
+          ) : (
+            <Pencil className='text-muted-foreground h-3.5 w-3.5 opacity-25' aria-hidden='true' />
+          )}
+        </span>
       </h3>
       <div id={contentId} hidden={collapsed}>
         {fallback ?? children}

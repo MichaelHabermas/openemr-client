@@ -19,6 +19,7 @@ type FhirFake = {
     practitionerId?: string;
     encounterId?: string;
     documentId?: string;
+    body?: unknown;
   }>;
   error?: unknown;
   fetchPatientBundle(accessToken: string): Promise<unknown>;
@@ -35,6 +36,14 @@ type FhirFake = {
     accessToken: string,
     documentId: string,
   ): Promise<{ contentType: string; data: Buffer }>;
+  fetchLocationBundle(accessToken: string): Promise<unknown>;
+  fetchOrganizationBundle(accessToken: string): Promise<unknown>;
+  fetchMedicationBundle(accessToken: string): Promise<unknown>;
+  fetchPractitionerRoles(accessToken: string, practitionerId: string): Promise<unknown>;
+  createAllergyIntolerance(accessToken: string, body: unknown): Promise<unknown>;
+  createCondition(accessToken: string, body: unknown): Promise<unknown>;
+  createAppointment(accessToken: string, body: unknown): Promise<unknown>;
+  fetchPatientProvenance(accessToken: string, patientId: string): Promise<unknown>;
 };
 
 type RouteLayer = {
@@ -132,6 +141,46 @@ function createFakes() {
       fhir.calls.push({ operation: 'fetchDocumentContent', accessToken, documentId });
       if (fhir.error) throw fhir.error;
       return { contentType: 'application/pdf', data: Buffer.from('fake-pdf') };
+    },
+    async fetchLocationBundle(accessToken: string) {
+      fhir.calls.push({ operation: 'fetchLocationBundle', accessToken });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Bundle', entry: [] };
+    },
+    async fetchOrganizationBundle(accessToken: string) {
+      fhir.calls.push({ operation: 'fetchOrganizationBundle', accessToken });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Bundle', entry: [] };
+    },
+    async fetchMedicationBundle(accessToken: string) {
+      fhir.calls.push({ operation: 'fetchMedicationBundle', accessToken });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Bundle', entry: [] };
+    },
+    async fetchPractitionerRoles(accessToken: string, practitionerId: string) {
+      fhir.calls.push({ operation: 'fetchPractitionerRoles', accessToken, practitionerId });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Bundle', entry: [] };
+    },
+    async createAllergyIntolerance(accessToken: string, body: unknown) {
+      fhir.calls.push({ operation: 'createAllergyIntolerance', accessToken, body });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'AllergyIntolerance', id: 'new-allergy' };
+    },
+    async createCondition(accessToken: string, body: unknown) {
+      fhir.calls.push({ operation: 'createCondition', accessToken, body });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Condition', id: 'new-condition' };
+    },
+    async createAppointment(accessToken: string, body: unknown) {
+      fhir.calls.push({ operation: 'createAppointment', accessToken, body });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Appointment', id: 'new-appointment' };
+    },
+    async fetchPatientProvenance(accessToken: string, patientId: string) {
+      fhir.calls.push({ operation: 'fetchPatientProvenance', accessToken, patientId });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Bundle', entry: [] };
     },
   };
   return { oauth, fhir };

@@ -21,6 +21,8 @@ interface ClinicalTableProps<TRow extends PartialRow> {
   emptyMessage: string;
   columns: ColumnDef<TRow>[];
   rowHref?: (row: TRow) => string;
+  provenanceBadge?: ReactNode;
+  onAdd?: () => void;
 }
 
 export function ClinicalTable<TRow extends PartialRow>({
@@ -30,13 +32,17 @@ export function ClinicalTable<TRow extends PartialRow>({
   emptyMessage,
   columns,
   rowHref,
+  provenanceBadge,
+  onAdd,
 }: ClinicalTableProps<TRow>) {
   return (
     <ClinicalSectionWrapper
       title={title}
       titleId={titleId}
       state={state}
-      emptyMessage={emptyMessage}>
+      emptyMessage={emptyMessage}
+      provenanceBadge={provenanceBadge}
+      onAdd={onAdd}>
       {state.status === 'success' ? (
         <div className='overflow-x-auto'>
           <table className='w-full border-collapse text-xs'>

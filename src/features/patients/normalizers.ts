@@ -16,7 +16,9 @@ import type {
   FhirObservation,
   FhirPatient,
   FhirPractitioner,
+  FhirPractitionerRole,
   FhirProcedure,
+  FhirProvenance,
   FhirReference,
   FhirRelatedPerson,
   FhirServiceRequest,
@@ -41,6 +43,7 @@ import type {
   PrescriptionRow,
   ProblemRow,
   ProcedureRow,
+  ProvenanceRecord,
   RelatedPersonRow,
   ServiceRequestRow,
   SocialHistoryRow,
@@ -941,6 +944,19 @@ export function normalizePractitionerName(value: unknown): string | null {
   return ([given, family].filter(Boolean).join(' ') || value.id) ?? null;
 }
 
+export function normalizePractitionerSpecialty(bundle: unknown): string | null {
+  const roles = bundleEntriesOf<FhirPractitionerRole>(bundle, 'PractitionerRole');
+  for (const role of roles) {
+    if (Array.isArray(role.specialty)) {
+      for (const spec of role.specialty) {
+        const display = displayCodeableConcept(spec, '');
+        if (display) return display;
+      }
+    }
+  }
+  return null;
+}
+
 export const normalizeClinicalBundle = {
   allergies: (bundle: unknown): AllergyRow[] =>
     bundleEntriesOf<FhirAllergyIntolerance>(bundle, 'AllergyIntolerance').flatMap((item) => {
@@ -1084,3 +1100,21 @@ export const normalizeClinicalBundle = {
       return row ? [row] : [];
     }),
 };
+
+export function normalizeProvenance(value: unknown): ProvenanceRecord | null {
+  if (!isResourceType<FhirProvenance>(value, 'Provenance')) return null;
+  const targets = Array.isArray(value.target) ? value.target : [];
+  const targetRef = targets.map((t) => stringValue(t.reference)).find(Boolean) ?? '';
+  const agents = Array.isArray(value.agent) ? value.agent : [];
+  const agent = agents.map((a) => displayReference(a.who, '')).find(Boolean) ?? '';
+  const recorded = stringValue(value.recorded);
+  if (!recorded) return null;
+  return { targetRef, agent, recorded: displayDate(recorded) };
+}
+
+export function normalizeProvenanceBundle(bundle: unknown): ProvenanceRecord[] {
+  return bundleEntriesOf<FhirProvenance>(bundle, 'Provenance').flatMap((item) => {
+    const row = normalizeProvenance(item);
+    return row ? [row] : [];
+  });
+}

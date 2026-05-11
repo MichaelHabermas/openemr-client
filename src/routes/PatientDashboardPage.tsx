@@ -8,6 +8,7 @@ import type { CareTeamRow, EncounterRow, LoadState } from '@/features/patients/t
 function useResolvedCareTeam(
   state: LoadState<CareTeamRow[]>,
   getName: (ref: string) => string | undefined,
+  getSpecialty: (ref: string) => string | undefined,
   resolve: (refs: string[]) => void,
 ): LoadState<CareTeamRow[]> {
   useEffect(() => {
@@ -21,10 +22,15 @@ function useResolvedCareTeam(
     const data = state.data.map((row) => {
       if (!row.practitionerRef) return row;
       const resolved = getName(row.practitionerRef);
-      return resolved ? { ...row, name: resolved, hasPartialData: false } : row;
+      const specialty = getSpecialty(row.practitionerRef);
+      return {
+        ...row,
+        ...(resolved ? { name: resolved, hasPartialData: false } : {}),
+        ...(specialty ? { specialty } : {}),
+      };
     });
     return { ...state, data };
-  }, [state, getName]);
+  }, [state, getName, getSpecialty]);
 }
 
 function useResolvedEncounters(
@@ -57,9 +63,9 @@ export function PatientDashboardPage() {
   const { patientId } = useParams();
   const dashboard = usePatientDashboard(patientId ?? '');
   const hasRedirected = useRef(false);
-  const { resolve, getName } = usePractitionerResolver();
+  const { resolve, getName, getSpecialty } = usePractitionerResolver();
 
-  const careTeam = useResolvedCareTeam(dashboard.careTeam, getName, resolve);
+  const careTeam = useResolvedCareTeam(dashboard.careTeam, getName, getSpecialty, resolve);
   const encounters = useResolvedEncounters(dashboard.encounters, getName, resolve);
 
   useEffect(() => {
@@ -77,5 +83,12 @@ export function PatientDashboardPage() {
     return <Navigate to='/patients' replace />;
   }
 
-  return <PatientDashboardShell {...dashboard} careTeam={careTeam} encounters={encounters} />;
+  return (
+    <PatientDashboardShell
+      {...dashboard}
+      careTeam={careTeam}
+      encounters={encounters}
+      patientId={patientId}
+    />
+  );
 }

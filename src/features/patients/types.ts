@@ -76,6 +76,7 @@ export interface CareTeamRow {
   id: string;
   name: string;
   role: string;
+  specialty?: string;
   status: string;
   facility: string;
   since: string;
@@ -248,4 +249,10 @@ export interface RelatedPersonRow {
   phone: string;
   address: string;
   hasPartialData: boolean;
+}
+
+export interface ProvenanceRecord {
+  targetRef: string;
+  agent: string;
+  recorded: string;
 }

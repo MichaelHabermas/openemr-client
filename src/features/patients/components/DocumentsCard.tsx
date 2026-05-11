@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
@@ -6,9 +7,10 @@ import type { DocumentRow, LoadState } from '../types';
 
 interface DocumentsCardProps {
   state: LoadState<DocumentRow[]>;
+  provenanceBadge?: ReactNode;
 }
 
-export function DocumentsCard({ state }: DocumentsCardProps) {
+export function DocumentsCard({ state, provenanceBadge }: DocumentsCardProps) {
   const { patientId } = useParams();
 
   const columns: ColumnDef<DocumentRow>[] = [
@@ -35,6 +37,7 @@ export function DocumentsCard({ state }: DocumentsCardProps) {
       state={state}
       emptyMessage='No documents recorded.'
       columns={columns}
+      provenanceBadge={provenanceBadge}
     />
   );
 }
