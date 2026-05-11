@@ -44,6 +44,8 @@ type FhirFake = {
   createCondition(accessToken: string, body: unknown): Promise<unknown>;
   createAppointment(accessToken: string, body: unknown): Promise<unknown>;
   fetchPatientProvenance(accessToken: string, patientId: string): Promise<unknown>;
+  fetchPersonBundle(accessToken: string): Promise<unknown>;
+  fetchGroupBundle(accessToken: string): Promise<unknown>;
 };
 
 type RouteLayer = {
@@ -179,6 +181,16 @@ function createFakes() {
     },
     async fetchPatientProvenance(accessToken: string, patientId: string) {
       fhir.calls.push({ operation: 'fetchPatientProvenance', accessToken, patientId });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Bundle', entry: [] };
+    },
+    async fetchPersonBundle(accessToken: string) {
+      fhir.calls.push({ operation: 'fetchPersonBundle', accessToken });
+      if (fhir.error) throw fhir.error;
+      return { resourceType: 'Bundle', entry: [] };
+    },
+    async fetchGroupBundle(accessToken: string) {
+      fhir.calls.push({ operation: 'fetchGroupBundle', accessToken });
       if (fhir.error) throw fhir.error;
       return { resourceType: 'Bundle', entry: [] };
     },

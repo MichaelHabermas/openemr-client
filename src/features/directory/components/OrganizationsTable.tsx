@@ -1,5 +1,5 @@
 import { ClinicalTable, type ColumnDef } from '@/features/patients/components/ClinicalTable';
-import type { LoadState } from '@/features/patients/types';
+import type { QueryResult } from '@/features/patients/types';
 import type { OrganizationRow } from '../types';
 
 const columns: ColumnDef<OrganizationRow>[] = [
@@ -11,7 +11,7 @@ const columns: ColumnDef<OrganizationRow>[] = [
 ];
 
 interface OrganizationsTableProps {
-  state: LoadState<OrganizationRow[]>;
+  state: QueryResult<OrganizationRow[]>;
 }
 
 export function OrganizationsTable({ state }: OrganizationsTableProps) {

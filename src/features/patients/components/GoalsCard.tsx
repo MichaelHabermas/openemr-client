@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
-import type { GoalRow, LoadState } from '../types';
+import type { GoalRow, QueryResult } from '../types';
 
 interface GoalsCardProps {
-  state: LoadState<GoalRow[]>;
+  state: QueryResult<GoalRow[]>;
   provenanceBadge?: ReactNode;
 }
 

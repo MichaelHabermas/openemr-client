@@ -1,5 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DependencyList } from 'react';
+import { useCallback } from 'react';
+import {
+  useQuery,
+  useQueryClient,
+  useMutation as useTanstackMutation,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 
 import {
   createAllergy,
@@ -8,27 +13,7 @@ import {
   fetchEncounterDetail,
   fetchEncounterObservations,
   fetchPatient,
-  fetchPatientAllergies,
-  fetchPatientAppointments,
-  fetchPatientCarePlans,
-  fetchPatientCareTeam,
-  fetchPatientCoverage,
-  fetchPatientDevices,
-  fetchPatientDiagnosticReports,
-  fetchPatientDocuments,
-  fetchPatientEncounters,
-  fetchPatientFamilyHistory,
-  fetchPatientGoals,
-  fetchPatientImmunizations,
-  fetchPatientLabs,
-  fetchPatientMedications,
-  fetchPatientPrescriptions,
-  fetchPatientProblems,
-  fetchPatientProcedures,
-  fetchPatientRelatedPersons,
-  fetchPatientServiceRequests,
-  fetchPatientSocialHistory,
-  fetchPatientVitals,
+  fetchPatientClinicalSummary,
   fetchPatients,
   fetchPractitioner,
   fetchPatientProvenance,
@@ -44,520 +29,306 @@ import {
   normalizeProvenanceBundle,
 } from './normalizers';
 import type {
-  AllergyRow,
-  AppointmentRow,
-  CarePlanRow,
-  CareTeamRow,
-  CoverageRow,
-  DeviceRow,
-  DiagnosticReportRow,
-  DocumentRow,
+  ClinicalSummary,
   EncounterRow,
-  FamilyHistoryRow,
-  GoalRow,
-  ImmunizationRow,
-  LabRow,
-  LoadState,
-  MedicationRow,
-  PatientFeatureError,
   PatientHeaderModel,
   PatientSummary,
-  PrescriptionRow,
-  ProblemRow,
-  ProcedureRow,
   ProvenanceRecord,
-  RelatedPersonRow,
-  ServiceRequestRow,
-  SocialHistoryRow,
+  QueryResult,
   VitalRow,
 } from './types';
 
-function toFeatureError(error: unknown): PatientFeatureError {
-  if (error instanceof PatientFeatureApiError) {
-    return {
-      status: error.status,
-      code: error.code,
-      message: error.message,
-      authRequired: error.authRequired,
-    };
-  }
+export type { UseQueryResult };
+export type PatientQuery<T> = UseQueryResult<T, PatientFeatureApiError>;
+
+// ── Query key factory ──────────────────────────────────────────────
+
+export const patientKeys = {
+  all: ['patients'] as const,
+  list: () => [...patientKeys.all, 'list'] as const,
+  detail: (id: string) => [...patientKeys.all, id] as const,
+  clinical: (id: string, resource: string) => [...patientKeys.detail(id), resource] as const,
+  encounter: (patientId: string, encounterId: string) =>
+    [...patientKeys.detail(patientId), 'encounters', encounterId] as const,
+  encounterObservations: (patientId: string, encounterId: string) =>
+    [...patientKeys.encounter(patientId, encounterId), 'observations'] as const,
+  clinicalSummary: (id: string) => [...patientKeys.detail(id), 'clinical-summary'] as const,
+  provenance: (id: string) => [...patientKeys.detail(id), 'provenance'] as const,
+  practitioner: (id: string) => ['practitioners', id] as const,
+  practitionerRoles: (id: string) => ['practitioners', id, 'roles'] as const,
+};
+
+// ── Patient list & header ──────────────────────────────────────────
+
+export function usePatients(): PatientQuery<PatientSummary[]> {
+  return useQuery({
+    queryKey: patientKeys.list(),
+    queryFn: async () => normalizePatientSummaries(await fetchPatients()),
+  });
+}
+
+export function usePatient(patientId: string): PatientQuery<PatientHeaderModel | null> {
+  const enabled = Boolean(patientId.trim());
+  return useQuery({
+    queryKey: patientKeys.detail(patientId),
+    queryFn: async () => normalizePatientHeader(await fetchPatient(patientId)),
+    enabled,
+  });
+}
+
+// ── Clinical summary (single batch fetch) ─────────────────────────
+
+function normalizeClinicalSummary(raw: unknown): ClinicalSummary {
+  const data = (raw ?? {}) as Record<string, unknown>;
   return {
-    status: 0,
-    message: 'Patient data could not be loaded.',
-    authRequired: false,
+    allergies: normalizeClinicalBundle.allergies(data.allergies),
+    problems: normalizeClinicalBundle.problems(data.problems),
+    medications: normalizeClinicalBundle.medications(data.medications),
+    prescriptions: normalizeClinicalBundle.prescriptions(data.prescriptions),
+    careTeam: normalizeClinicalBundle.careTeam(data.careTeam),
+    encounters: normalizeClinicalBundle.encounters(data.encounters),
+    immunizations: normalizeClinicalBundle.immunizations(data.immunizations),
+    vitals: normalizeClinicalBundle.vitals(data.vitals),
+    labs: normalizeClinicalBundle.labs(data.labs),
+    procedures: normalizeClinicalBundle.procedures(data.procedures),
+    documents: normalizeClinicalBundle.documents(data.documents),
+    coverage: normalizeClinicalBundle.coverage(data.coverage),
+    diagnosticReports: normalizeClinicalBundle.diagnosticReports(data.diagnosticReports),
+    goals: normalizeClinicalBundle.goals(data.goals),
+    carePlans: normalizeClinicalBundle.carePlans(data.carePlans),
+    socialHistory: normalizeClinicalBundle.socialHistory(data.socialHistory),
+    familyHistory: normalizeClinicalBundle.familyHistory(data.familyHistory),
+    appointments: normalizeClinicalBundle.appointments(data.appointments),
+    devices: normalizeClinicalBundle.devices(data.devices),
+    serviceRequests: normalizeClinicalBundle.serviceRequests(data.serviceRequests),
+    relatedPersons: normalizeClinicalBundle.relatedPersons(data.relatedPersons),
+    medicationDispenses: normalizeClinicalBundle.medicationDispenses(data.medicationDispenses),
+    questionnaireResponses: normalizeClinicalBundle.questionnaireResponses(
+      data.questionnaireResponses,
+    ),
   };
 }
 
-function useAsyncPatientState<T>(
-  load: () => Promise<T>,
-  isEmpty: (data: T) => boolean,
-  deps: DependencyList,
-  enabled = true,
-): LoadState<T> {
-  const [state, setState] = useState<LoadState<T>>({
-    status: enabled ? 'loading' : 'idle',
+function usePatientClinicalSummary(patientId: string): PatientQuery<ClinicalSummary> {
+  return useQuery({
+    queryKey: patientKeys.clinicalSummary(patientId),
+    queryFn: async () => normalizeClinicalSummary(await fetchPatientClinicalSummary(patientId)),
+    enabled: Boolean(patientId.trim()),
   });
-
-  useEffect(() => {
-    if (!enabled) return;
-
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) setState({ status: 'loading' });
-    });
-
-    void load()
-      .then((data) => {
-        if (!cancelled) setState({ status: 'success', data, isEmpty: isEmpty(data) });
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ status: 'error', error: toFeatureError(error) });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // The caller owns stable dependencies for the load closure.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-
-  return state;
 }
 
-export function usePatients(): LoadState<PatientSummary[]> {
-  return useAsyncPatientState(
-    async () => normalizePatientSummaries(await fetchPatients()),
-    (patients) => patients.length === 0,
-    [],
-  );
+function projectSummary<T>(
+  summary: PatientQuery<ClinicalSummary>,
+  select: (s: ClinicalSummary) => T,
+): QueryResult<T> {
+  return {
+    status: summary.status,
+    data: summary.data ? select(summary.data) : undefined,
+    error: summary.error,
+  };
 }
 
-export function usePatient(patientId: string): LoadState<PatientHeaderModel | null> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizePatientHeader(await fetchPatient(patientId)),
-    (patient) => patient === null,
-    [patientId],
-    enabled,
-  );
-}
-
-type ClinicalRowsByKind = {
-  allergies: AllergyRow[];
-  problems: ProblemRow[];
-  medications: MedicationRow[];
-  prescriptions: PrescriptionRow[];
-  careTeam: CareTeamRow[];
-  encounters: EncounterRow[];
-  immunizations: ImmunizationRow[];
-  vitals: VitalRow[];
-  labs: LabRow[];
-  procedures: ProcedureRow[];
-  documents: DocumentRow[];
-  coverage: CoverageRow[];
-  diagnosticReports: DiagnosticReportRow[];
-  goals: GoalRow[];
-  carePlans: CarePlanRow[];
-  socialHistory: SocialHistoryRow[];
-  familyHistory: FamilyHistoryRow[];
-  appointments: AppointmentRow[];
-  devices: DeviceRow[];
-  serviceRequests: ServiceRequestRow[];
-  relatedPersons: RelatedPersonRow[];
-};
-
-function usePatientAllergies(patientId: string): LoadState<ClinicalRowsByKind['allergies']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.allergies(await fetchPatientAllergies(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientProblems(patientId: string): LoadState<ClinicalRowsByKind['problems']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.problems(await fetchPatientProblems(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientMedications(patientId: string): LoadState<ClinicalRowsByKind['medications']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.medications(await fetchPatientMedications(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientPrescriptions(
-  patientId: string,
-): LoadState<ClinicalRowsByKind['prescriptions']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.prescriptions(await fetchPatientPrescriptions(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientCareTeam(patientId: string): LoadState<ClinicalRowsByKind['careTeam']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.careTeam(await fetchPatientCareTeam(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientEncounters(patientId: string): LoadState<ClinicalRowsByKind['encounters']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.encounters(await fetchPatientEncounters(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientImmunizations(
-  patientId: string,
-): LoadState<ClinicalRowsByKind['immunizations']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.immunizations(await fetchPatientImmunizations(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientVitals(patientId: string): LoadState<ClinicalRowsByKind['vitals']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.vitals(await fetchPatientVitals(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientLabs(patientId: string): LoadState<ClinicalRowsByKind['labs']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.labs(await fetchPatientLabs(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientProcedures(patientId: string): LoadState<ClinicalRowsByKind['procedures']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.procedures(await fetchPatientProcedures(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientDocuments(patientId: string): LoadState<ClinicalRowsByKind['documents']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.documents(await fetchPatientDocuments(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientCoverage(patientId: string): LoadState<ClinicalRowsByKind['coverage']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.coverage(await fetchPatientCoverage(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientDiagnosticReports(
-  patientId: string,
-): LoadState<ClinicalRowsByKind['diagnosticReports']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () =>
-      normalizeClinicalBundle.diagnosticReports(await fetchPatientDiagnosticReports(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientGoals(patientId: string): LoadState<ClinicalRowsByKind['goals']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.goals(await fetchPatientGoals(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientCarePlans(patientId: string): LoadState<ClinicalRowsByKind['carePlans']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.carePlans(await fetchPatientCarePlans(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientSocialHistory(
-  patientId: string,
-): LoadState<ClinicalRowsByKind['socialHistory']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.socialHistory(await fetchPatientSocialHistory(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientFamilyHistory(
-  patientId: string,
-): LoadState<ClinicalRowsByKind['familyHistory']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.familyHistory(await fetchPatientFamilyHistory(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientAppointments(patientId: string): LoadState<ClinicalRowsByKind['appointments']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.appointments(await fetchPatientAppointments(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientDevices(patientId: string): LoadState<ClinicalRowsByKind['devices']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.devices(await fetchPatientDevices(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientServiceRequests(
-  patientId: string,
-): LoadState<ClinicalRowsByKind['serviceRequests']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () =>
-      normalizeClinicalBundle.serviceRequests(await fetchPatientServiceRequests(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
-
-function usePatientRelatedPersons(
-  patientId: string,
-): LoadState<ClinicalRowsByKind['relatedPersons']> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeClinicalBundle.relatedPersons(await fetchPatientRelatedPersons(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
-}
+// ── Encounter detail ───────────────────────────────────────────────
 
 export function useEncounterDetail(
   patientId: string,
   encounterId: string,
-): LoadState<EncounterRow | null> {
-  const enabled = Boolean(patientId.trim()) && Boolean(encounterId.trim());
-  return useAsyncPatientState(
-    async () => {
+): PatientQuery<EncounterRow | null> {
+  return useQuery({
+    queryKey: patientKeys.encounter(patientId, encounterId),
+    queryFn: async () => {
       const { normalizeEncounter } = await import('./normalizers');
-      const data = await fetchEncounterDetail(patientId, encounterId);
-      return normalizeEncounter(data);
+      return normalizeEncounter(await fetchEncounterDetail(patientId, encounterId));
     },
-    (encounter) => encounter === null,
-    [patientId, encounterId],
-    enabled,
-  );
+    enabled: Boolean(patientId.trim()) && Boolean(encounterId.trim()),
+  });
 }
 
 export function useEncounterObservations(
   patientId: string,
   encounterId: string,
-): LoadState<VitalRow[]> {
-  const enabled = Boolean(patientId.trim()) && Boolean(encounterId.trim());
-  return useAsyncPatientState(
-    async () =>
+): PatientQuery<VitalRow[]> {
+  return useQuery({
+    queryKey: patientKeys.encounterObservations(patientId, encounterId),
+    queryFn: async () =>
       normalizeClinicalBundle.encounterObservations(
         await fetchEncounterObservations(patientId, encounterId),
       ),
-    (rows) => rows.length === 0,
-    [patientId, encounterId],
-    enabled,
-  );
+    enabled: Boolean(patientId.trim()) && Boolean(encounterId.trim()),
+  });
 }
 
+// ── Practitioner resolver ──────────────────────────────────────────
+
 export function usePractitionerResolver() {
-  const cache = useRef<Map<string, string>>(new Map());
-  const specialtyCache = useRef<Map<string, string>>(new Map());
-  const [names, setNames] = useState<Map<string, string>>(new Map());
-  const [specialties, setSpecialties] = useState<Map<string, string>>(new Map());
+  const queryClient = useQueryClient();
 
-  const resolve = useCallback((references: string[]) => {
-    const idsToFetch = references
-      .map((ref) => ref.replace(/^Practitioner\//, ''))
-      .filter((id) => !cache.current.has(id));
-
-    if (idsToFetch.length === 0) return;
-
-    for (const id of idsToFetch) {
-      cache.current.set(id, '');
-      specialtyCache.current.set(id, '');
-
-      void fetchPractitioner(id)
-        .then((data) => {
-          const name = normalizePractitionerName(data);
-          if (name) {
-            cache.current.set(id, name);
-            setNames(new Map(cache.current));
-          }
-        })
-        .catch(() => {});
-
-      void fetchPractitionerRoles(id)
-        .then((data) => {
-          const specialty = normalizePractitionerSpecialty(data);
-          if (specialty) {
-            specialtyCache.current.set(id, specialty);
-            setSpecialties(new Map(specialtyCache.current));
-          }
-        })
-        .catch(() => {});
-    }
-  }, []);
+  const resolve = useCallback(
+    (references: string[]) => {
+      for (const ref of references) {
+        const id = ref.replace(/^Practitioner\//, '');
+        if (!id) continue;
+        void queryClient.prefetchQuery({
+          queryKey: patientKeys.practitioner(id),
+          queryFn: () => fetchPractitioner(id).then(normalizePractitionerName),
+          staleTime: Infinity,
+        });
+        void queryClient.prefetchQuery({
+          queryKey: patientKeys.practitionerRoles(id),
+          queryFn: () => fetchPractitionerRoles(id).then(normalizePractitionerSpecialty),
+          staleTime: Infinity,
+        });
+      }
+    },
+    [queryClient],
+  );
 
   const getName = useCallback(
     (reference: string): string | undefined => {
       const id = reference.replace(/^Practitioner\//, '');
-      return names.get(id) || undefined;
+      return queryClient.getQueryData<string | null>(patientKeys.practitioner(id)) ?? undefined;
     },
-    [names],
+    [queryClient],
   );
 
   const getSpecialty = useCallback(
     (reference: string): string | undefined => {
       const id = reference.replace(/^Practitioner\//, '');
-      return specialties.get(id) || undefined;
+      return (
+        queryClient.getQueryData<string | null>(patientKeys.practitionerRoles(id)) ?? undefined
+      );
     },
-    [specialties],
+    [queryClient],
   );
 
   return { resolve, getName, getSpecialty };
 }
 
+// ── Mutations ──────────────────────────────────────────────────────
+
 export type MutationState =
   | { status: 'idle' }
   | { status: 'submitting' }
   | { status: 'success' }
-  | { status: 'error'; error: PatientFeatureError };
-
-function useMutation<TArgs extends unknown[]>(
-  mutateFn: (...args: TArgs) => Promise<unknown>,
-): { mutate: (...args: TArgs) => void; state: MutationState; reset: () => void } {
-  const [state, setState] = useState<MutationState>({ status: 'idle' });
-
-  const mutate = useCallback(
-    (...args: TArgs) => {
-      setState({ status: 'submitting' });
-      void mutateFn(...args)
-        .then(() => setState({ status: 'success' }))
-        .catch((error: unknown) => setState({ status: 'error', error: toFeatureError(error) }));
-    },
-    [mutateFn],
-  );
-
-  const reset = useCallback(() => setState({ status: 'idle' }), []);
-
-  return { mutate, state, reset };
-}
+  | { status: 'error'; error: PatientFeatureApiError };
 
 export function useCreateAllergy(patientId: string) {
-  const mutateFn = useCallback((body: unknown) => createAllergy(patientId, body), [patientId]);
-  return useMutation(mutateFn);
+  const queryClient = useQueryClient();
+  const mutation = useTanstackMutation({
+    mutationFn: (body: unknown) => createAllergy(patientId, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: patientKeys.clinicalSummary(patientId),
+      });
+    },
+  });
+
+  const state: MutationState = mutation.isIdle
+    ? { status: 'idle' }
+    : mutation.isPending
+      ? { status: 'submitting' }
+      : mutation.isSuccess
+        ? { status: 'success' }
+        : { status: 'error', error: mutation.error as PatientFeatureApiError };
+
+  return {
+    mutate: mutation.mutate,
+    state,
+    reset: mutation.reset,
+  };
 }
 
 export function useCreateProblem(patientId: string) {
-  const mutateFn = useCallback((body: unknown) => createProblem(patientId, body), [patientId]);
-  return useMutation(mutateFn);
+  const queryClient = useQueryClient();
+  const mutation = useTanstackMutation({
+    mutationFn: (body: unknown) => createProblem(patientId, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: patientKeys.clinicalSummary(patientId),
+      });
+    },
+  });
+
+  const state: MutationState = mutation.isIdle
+    ? { status: 'idle' }
+    : mutation.isPending
+      ? { status: 'submitting' }
+      : mutation.isSuccess
+        ? { status: 'success' }
+        : { status: 'error', error: mutation.error as PatientFeatureApiError };
+
+  return {
+    mutate: mutation.mutate,
+    state,
+    reset: mutation.reset,
+  };
 }
 
 export function useCreateAppointment(patientId: string) {
-  const mutateFn = useCallback((body: unknown) => createAppointment(patientId, body), [patientId]);
-  return useMutation(mutateFn);
+  const queryClient = useQueryClient();
+  const mutation = useTanstackMutation({
+    mutationFn: (body: unknown) => createAppointment(patientId, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: patientKeys.clinicalSummary(patientId),
+      });
+    },
+  });
+
+  const state: MutationState = mutation.isIdle
+    ? { status: 'idle' }
+    : mutation.isPending
+      ? { status: 'submitting' }
+      : mutation.isSuccess
+        ? { status: 'success' }
+        : { status: 'error', error: mutation.error as PatientFeatureApiError };
+
+  return {
+    mutate: mutation.mutate,
+    state,
+    reset: mutation.reset,
+  };
 }
 
-export function usePatientProvenance(patientId: string): LoadState<ProvenanceRecord[]> {
-  const enabled = Boolean(patientId.trim());
-  return useAsyncPatientState(
-    async () => normalizeProvenanceBundle(await fetchPatientProvenance(patientId)),
-    (rows) => rows.length === 0,
-    [patientId],
-    enabled,
-  );
+// ── Provenance ─────────────────────────────────────────────────────
+
+export function usePatientProvenance(patientId: string): PatientQuery<ProvenanceRecord[]> {
+  return useQuery({
+    queryKey: patientKeys.provenance(patientId),
+    queryFn: async () => normalizeProvenanceBundle(await fetchPatientProvenance(patientId)),
+    enabled: Boolean(patientId.trim()),
+  });
 }
+
+// ── Dashboard aggregate ────────────────────────────────────────────
 
 export function usePatientDashboard(patientId: string) {
+  const summary = usePatientClinicalSummary(patientId);
   return {
     patient: usePatient(patientId),
-    allergies: usePatientAllergies(patientId),
-    problems: usePatientProblems(patientId),
-    medications: usePatientMedications(patientId),
-    prescriptions: usePatientPrescriptions(patientId),
-    careTeam: usePatientCareTeam(patientId),
-    encounters: usePatientEncounters(patientId),
-    immunizations: usePatientImmunizations(patientId),
-    vitals: usePatientVitals(patientId),
-    labs: usePatientLabs(patientId),
-    procedures: usePatientProcedures(patientId),
-    documents: usePatientDocuments(patientId),
-    coverage: usePatientCoverage(patientId),
-    diagnosticReports: usePatientDiagnosticReports(patientId),
-    goals: usePatientGoals(patientId),
-    carePlans: usePatientCarePlans(patientId),
-    socialHistory: usePatientSocialHistory(patientId),
-    familyHistory: usePatientFamilyHistory(patientId),
-    appointments: usePatientAppointments(patientId),
-    devices: usePatientDevices(patientId),
-    serviceRequests: usePatientServiceRequests(patientId),
-    relatedPersons: usePatientRelatedPersons(patientId),
+    allergies: projectSummary(summary, (s) => s.allergies),
+    problems: projectSummary(summary, (s) => s.problems),
+    medications: projectSummary(summary, (s) => s.medications),
+    prescriptions: projectSummary(summary, (s) => s.prescriptions),
+    careTeam: projectSummary(summary, (s) => s.careTeam),
+    encounters: projectSummary(summary, (s) => s.encounters),
+    immunizations: projectSummary(summary, (s) => s.immunizations),
+    vitals: projectSummary(summary, (s) => s.vitals),
+    labs: projectSummary(summary, (s) => s.labs),
+    procedures: projectSummary(summary, (s) => s.procedures),
+    documents: projectSummary(summary, (s) => s.documents),
+    coverage: projectSummary(summary, (s) => s.coverage),
+    diagnosticReports: projectSummary(summary, (s) => s.diagnosticReports),
+    goals: projectSummary(summary, (s) => s.goals),
+    carePlans: projectSummary(summary, (s) => s.carePlans),
+    socialHistory: projectSummary(summary, (s) => s.socialHistory),
+    familyHistory: projectSummary(summary, (s) => s.familyHistory),
+    appointments: projectSummary(summary, (s) => s.appointments),
+    devices: projectSummary(summary, (s) => s.devices),
+    serviceRequests: projectSummary(summary, (s) => s.serviceRequests),
+    relatedPersons: projectSummary(summary, (s) => s.relatedPersons),
+    medicationDispenses: projectSummary(summary, (s) => s.medicationDispenses),
+    questionnaireResponses: projectSummary(summary, (s) => s.questionnaireResponses),
     provenance: usePatientProvenance(patientId),
   };
 }

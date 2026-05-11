@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
-import type { FamilyHistoryRow, LoadState } from '../types';
+import type { FamilyHistoryRow, QueryResult } from '../types';
 
 interface FamilyHistoryCardProps {
-  state: LoadState<FamilyHistoryRow[]>;
+  state: QueryResult<FamilyHistoryRow[]>;
   provenanceBadge?: ReactNode;
 }
 

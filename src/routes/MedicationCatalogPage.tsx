@@ -1,24 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 import { MedicationsCatalogTable } from '@/features/medications/components/MedicationsCatalogTable';
 import { useMedicationsCatalog } from '@/features/medications/hooks';
 
 export function MedicationCatalogPage() {
-  const navigate = useNavigate();
   const catalogState = useMedicationsCatalog();
-  const hasRedirected = useRef(false);
-
-  useEffect(() => {
-    if (
-      catalogState.status === 'error' &&
-      catalogState.error.authRequired &&
-      !hasRedirected.current
-    ) {
-      hasRedirected.current = true;
-      navigate('/');
-    }
-  }, [navigate, catalogState]);
 
   return (
     <div className='space-y-6'>

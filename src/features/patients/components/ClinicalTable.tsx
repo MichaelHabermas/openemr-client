@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
-import type { LoadState } from '../types';
+import type { QueryResult } from '../types';
 import { ClinicalSectionWrapper } from './ClinicalSectionWrapper';
 
 interface PartialRow {
@@ -17,7 +17,7 @@ export interface ColumnDef<TRow> {
 interface ClinicalTableProps<TRow extends PartialRow> {
   title: string;
   titleId?: string;
-  state: LoadState<TRow[]>;
+  state: QueryResult<TRow[]>;
   emptyMessage: string;
   columns: ColumnDef<TRow>[];
   rowHref?: (row: TRow) => string;
@@ -43,7 +43,7 @@ export function ClinicalTable<TRow extends PartialRow>({
       emptyMessage={emptyMessage}
       provenanceBadge={provenanceBadge}
       onAdd={onAdd}>
-      {state.status === 'success' ? (
+      {state.status === 'success' && state.data ? (
         <div className='overflow-x-auto'>
           <table className='w-full border-collapse text-xs'>
             <thead>

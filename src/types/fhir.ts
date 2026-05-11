@@ -417,6 +417,75 @@ export interface FhirMedication {
   };
 }
 
+export interface FhirMedicationDispense {
+  resourceType: 'MedicationDispense';
+  id?: string;
+  status?: string;
+  medicationCodeableConcept?: FhirCodeableConcept;
+  medicationReference?: FhirReference;
+  subject?: FhirReference;
+  performer?: Array<{ actor?: FhirReference }>;
+  whenHandedOver?: string;
+  whenPrepared?: string;
+  quantity?: { value?: number; unit?: string };
+  daysSupply?: { value?: number; unit?: string };
+  dosageInstruction?: Array<{ text?: string }>;
+  authorizingPrescription?: FhirReference[];
+}
+
+export interface FhirQuestionnaireResponse {
+  resourceType: 'QuestionnaireResponse';
+  id?: string;
+  status?: string;
+  questionnaire?: string;
+  subject?: FhirReference;
+  authored?: string;
+  author?: FhirReference;
+  source?: FhirReference;
+  item?: Array<{
+    linkId?: string;
+    text?: string;
+    answer?: Array<{
+      valueString?: string;
+      valueBoolean?: boolean;
+      valueInteger?: number;
+      valueDate?: string;
+      valueCoding?: FhirCoding;
+    }>;
+  }>;
+}
+
+export interface FhirPerson {
+  resourceType: 'Person';
+  id?: string;
+  active?: boolean;
+  name?: FhirHumanName[];
+  gender?: string;
+  birthDate?: string;
+  telecom?: Array<{ system?: string; value?: string; use?: string }>;
+  address?: Array<{
+    text?: string;
+    line?: string[];
+    city?: string;
+    state?: string;
+    postalCode?: string;
+  }>;
+  link?: Array<{ target?: FhirReference }>;
+}
+
+export interface FhirGroup {
+  resourceType: 'Group';
+  id?: string;
+  active?: boolean;
+  type?: string;
+  actual?: boolean;
+  code?: FhirCodeableConcept;
+  name?: string;
+  quantity?: number;
+  managingEntity?: FhirReference;
+  member?: Array<{ entity?: FhirReference }>;
+}
+
 export interface FhirProvenance {
   resourceType: 'Provenance';
   id?: string;

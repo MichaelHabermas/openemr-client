@@ -15,7 +15,7 @@ export function PatientsPage() {
   useEffect(() => {
     if (
       patientsState.status === 'error' &&
-      patientsState.error.authRequired &&
+      patientsState.error?.authRequired &&
       !hasRedirected.current
     ) {
       hasRedirected.current = true;

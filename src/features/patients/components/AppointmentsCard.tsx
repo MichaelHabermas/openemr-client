@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import { CreateAppointmentForm } from './CreateAppointmentForm';
-import type { AppointmentRow, LoadState } from '../types';
+import type { AppointmentRow, QueryResult } from '../types';
 
 interface AppointmentsCardProps {
-  state: LoadState<AppointmentRow[]>;
+  state: QueryResult<AppointmentRow[]>;
   patientId?: string;
   provenanceBadge?: ReactNode;
 }

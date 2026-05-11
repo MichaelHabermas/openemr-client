@@ -25,12 +25,14 @@ import type {
   GoalRow,
   ImmunizationRow,
   LabRow,
-  LoadState,
+  MedicationDispenseRow,
   MedicationRow,
   PatientSummary,
   PrescriptionRow,
   ProcedureRow,
   ProvenanceRecord,
+  QueryResult,
+  QuestionnaireResponseRow,
   RelatedPersonRow,
   ServiceRequestRow,
   SocialHistoryRow,
@@ -48,7 +50,7 @@ describe('ClinicalSection', () => {
       renderToStaticMarkup(
         <ClinicalSection<TestRow>
           title='Test'
-          state={{ status: 'loading' }}
+          state={{ status: 'pending', data: undefined, error: null }}
           emptyMessage='No rows.'
           renderRow={(row) => row.id}
         />,
@@ -59,7 +61,7 @@ describe('ClinicalSection', () => {
       renderToStaticMarkup(
         <ClinicalSection<TestRow>
           title='Test'
-          state={{ status: 'success', data: [], isEmpty: true }}
+          state={{ status: 'success', data: [], error: null }}
           emptyMessage='No rows.'
           renderRow={(row) => row.id}
         />,
@@ -72,7 +74,8 @@ describe('ClinicalSection', () => {
           title='Test'
           state={{
             status: 'error',
-            error: { status: 502, message: 'Could not load.', authRequired: false },
+            data: undefined,
+            error: new Error('Could not load.'),
           }}
           emptyMessage='No rows.'
           renderRow={(row) => row.id}
@@ -87,7 +90,7 @@ describe('ClinicalSection', () => {
           state={{
             status: 'success',
             data: [{ id: 'row-1', hasPartialData: true }],
-            isEmpty: false,
+            error: null,
           }}
           emptyMessage='No rows.'
           renderRow={(row) => row.id}
@@ -101,22 +104,18 @@ describe('clinical section cards', () => {
   test('renders allergy fields', () => {
     const html = renderToStaticMarkup(
       <AllergiesCard
-        state={{
-          status: 'success',
-          isEmpty: false,
-          data: [
-            {
-              id: 'a1',
-              substance: 'Penicillin',
-              clinicalStatus: 'Active',
-              verificationStatus: 'Confirmed',
-              reaction: 'Rash',
-              severity: 'Moderate',
-              recordedDate: 'May 1, 2026',
-              hasPartialData: false,
-            },
-          ],
-        }}
+        state={success([
+          {
+            id: 'a1',
+            substance: 'Penicillin',
+            clinicalStatus: 'Active',
+            verificationStatus: 'Confirmed',
+            reaction: 'Rash',
+            severity: 'Moderate',
+            recordedDate: 'May 1, 2026',
+            hasPartialData: false,
+          },
+        ])}
       />,
     );
 
@@ -127,22 +126,18 @@ describe('clinical section cards', () => {
   test('renders problem fields', () => {
     const html = renderToStaticMarkup(
       <ProblemListCard
-        state={{
-          status: 'success',
-          isEmpty: false,
-          data: [
-            {
-              id: 'p1',
-              name: 'Hypertension',
-              clinicalStatus: 'Active',
-              verificationStatus: 'Confirmed',
-              dateLabel: 'May 1, 2026',
-              category: 'Problem-list-item',
-              isActive: true,
-              hasPartialData: false,
-            },
-          ],
-        }}
+        state={success([
+          {
+            id: 'p1',
+            name: 'Hypertension',
+            clinicalStatus: 'Active',
+            verificationStatus: 'Confirmed',
+            dateLabel: 'May 1, 2026',
+            category: 'Problem-list-item',
+            isActive: true,
+            hasPartialData: false,
+          },
+        ])}
       />,
     );
 
@@ -152,43 +147,35 @@ describe('clinical section cards', () => {
   test('renders medication and prescription as distinct cards', () => {
     const medicationHtml = renderToStaticMarkup(
       <MedicationsCard
-        state={{
-          status: 'success',
-          isEmpty: false,
-          data: [
-            {
-              id: 'm1',
-              name: 'Atorvastatin',
-              status: 'Active',
-              dosage: 'Take daily',
-              dateLabel: 'May 1, 2026',
-              prescriber: 'Dr. Clinician',
-              hasPartialData: false,
-            },
-          ],
-        }}
+        state={success([
+          {
+            id: 'm1',
+            name: 'Atorvastatin',
+            status: 'Active',
+            dosage: 'Take daily',
+            dateLabel: 'May 1, 2026',
+            prescriber: 'Dr. Clinician',
+            hasPartialData: false,
+          },
+        ])}
       />,
     );
     const prescriptionHtml = renderToStaticMarkup(
       <PrescriptionsCard
-        state={{
-          status: 'success',
-          isEmpty: false,
-          data: [
-            {
-              id: 'rx1',
-              name: 'Atorvastatin',
-              status: 'Active',
-              intent: 'Order',
-              authoredDate: 'May 1, 2026',
-              dosage: 'Take daily',
-              prescriber: 'Dr. Clinician',
-              quantity: '30',
-              refills: '2',
-              hasPartialData: false,
-            },
-          ],
-        }}
+        state={success([
+          {
+            id: 'rx1',
+            name: 'Atorvastatin',
+            status: 'Active',
+            intent: 'Order',
+            authoredDate: 'May 1, 2026',
+            dosage: 'Take daily',
+            prescriber: 'Dr. Clinician',
+            quantity: '30',
+            refills: '2',
+            hasPartialData: false,
+          },
+        ])}
       />,
     );
 
@@ -204,21 +191,17 @@ describe('clinical section cards', () => {
   test('renders care team fields', () => {
     const html = renderToStaticMarkup(
       <CareTeamCard
-        state={{
-          status: 'success',
-          isEmpty: false,
-          data: [
-            {
-              id: 'ct1',
-              name: 'Dr. Clinician',
-              role: 'Primary care provider',
-              status: 'Active',
-              facility: 'Not recorded',
-              since: 'Not recorded',
-              hasPartialData: false,
-            },
-          ],
-        }}
+        state={success([
+          {
+            id: 'ct1',
+            name: 'Dr. Clinician',
+            role: 'Primary care provider',
+            status: 'Active',
+            facility: 'Not recorded',
+            since: 'Not recorded',
+            hasPartialData: false,
+          },
+        ])}
       />,
     );
 
@@ -243,7 +226,7 @@ describe('patient picker rendering', () => {
   test('renders search field, result count, and encoded patient link', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
-        <PatientPicker state={{ status: 'success', data: [patient], isEmpty: false }} />
+        <PatientPicker state={success([patient])} />
       </MemoryRouter>,
     );
 
@@ -297,7 +280,8 @@ describe('PatientDashboardShell', () => {
           ])}
           problems={{
             status: 'error',
-            error: { status: 502, message: 'Problems unavailable.', authRequired: false },
+            data: undefined,
+            error: new Error('Problems unavailable.'),
           }}
           medications={success<MedicationRow[]>([])}
           prescriptions={success<PrescriptionRow[]>([])}
@@ -330,6 +314,8 @@ describe('PatientDashboardShell', () => {
           devices={success<DeviceRow[]>([])}
           serviceRequests={success<ServiceRequestRow[]>([])}
           relatedPersons={success<RelatedPersonRow[]>([])}
+          medicationDispenses={success<MedicationDispenseRow[]>([])}
+          questionnaireResponses={success<QuestionnaireResponseRow[]>([])}
           provenance={success<ProvenanceRecord[]>([])}
         />
       </MemoryRouter>,
@@ -343,6 +329,6 @@ describe('PatientDashboardShell', () => {
   });
 });
 
-function success<T>(data: T): LoadState<T> {
-  return { status: 'success', data, isEmpty: Array.isArray(data) && data.length === 0 };
+function success<T>(data: T): QueryResult<T> {
+  return { status: 'success', data, error: null };
 }

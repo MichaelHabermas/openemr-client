@@ -1,54 +1,61 @@
-import { useEffect, useState } from 'react';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
-import type { LoadState, PatientFeatureError } from '@/features/patients/types';
+import {
+  fetchGroups,
+  fetchLocations,
+  fetchOrganizations,
+  fetchPersons,
+  type DirectoryApiError,
+} from './api';
+import {
+  normalizeGroupBundle,
+  normalizeLocationBundle,
+  normalizeOrganizationBundle,
+  normalizePersonBundle,
+} from './normalizers';
+import type { GroupRow, LocationRow, OrganizationRow, PersonRow } from './types';
 
-import { DirectoryApiError, fetchLocations, fetchOrganizations } from './api';
-import { normalizeLocationBundle, normalizeOrganizationBundle } from './normalizers';
-import type { LocationRow, OrganizationRow } from './types';
+export type DirectoryQuery<T> = UseQueryResult<T, DirectoryApiError>;
 
-function toError(error: unknown): PatientFeatureError {
-  if (error instanceof DirectoryApiError) {
-    return {
-      status: error.status,
-      code: error.code,
-      message: error.message,
-      authRequired: error.authRequired,
-    };
-  }
-  return { status: 0, message: 'Data could not be loaded.', authRequired: false };
+export const directoryKeys = {
+  locations: ['directory', 'locations'] as const,
+  organizations: ['directory', 'organizations'] as const,
+  persons: ['directory', 'persons'] as const,
+  groups: ['directory', 'groups'] as const,
+};
+
+export function useLocations(): DirectoryQuery<LocationRow[]> {
+  return useQuery({
+    queryKey: directoryKeys.locations,
+    queryFn: async () => normalizeLocationBundle(await fetchLocations()),
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+  });
 }
 
-function useAsyncState<T>(load: () => Promise<T>, isEmpty: (data: T) => boolean): LoadState<T> {
-  const [state, setState] = useState<LoadState<T>>({ status: 'loading' });
-
-  useEffect(() => {
-    let cancelled = false;
-    void load()
-      .then((data) => {
-        if (!cancelled) setState({ status: 'success', data, isEmpty: isEmpty(data) });
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ status: 'error', error: toError(error) });
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return state;
+export function useOrganizations(): DirectoryQuery<OrganizationRow[]> {
+  return useQuery({
+    queryKey: directoryKeys.organizations,
+    queryFn: async () => normalizeOrganizationBundle(await fetchOrganizations()),
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+  });
 }
 
-export function useLocations(): LoadState<LocationRow[]> {
-  return useAsyncState(
-    async () => normalizeLocationBundle(await fetchLocations()),
-    (rows) => rows.length === 0,
-  );
+export function usePersons(): DirectoryQuery<PersonRow[]> {
+  return useQuery({
+    queryKey: directoryKeys.persons,
+    queryFn: async () => normalizePersonBundle(await fetchPersons()),
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+  });
 }
 
-export function useOrganizations(): LoadState<OrganizationRow[]> {
-  return useAsyncState(
-    async () => normalizeOrganizationBundle(await fetchOrganizations()),
-    (rows) => rows.length === 0,
-  );
+export function useGroups(): DirectoryQuery<GroupRow[]> {
+  return useQuery({
+    queryKey: directoryKeys.groups,
+    queryFn: async () => normalizeGroupBundle(await fetchGroups()),
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+  });
 }

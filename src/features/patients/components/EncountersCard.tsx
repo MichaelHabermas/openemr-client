@@ -2,10 +2,10 @@ import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
-import type { EncounterRow, LoadState } from '../types';
+import type { EncounterRow, QueryResult } from '../types';
 
 interface EncountersCardProps {
-  state: LoadState<EncounterRow[]>;
+  state: QueryResult<EncounterRow[]>;
   provenanceBadge?: ReactNode;
 }
 

@@ -1,9 +1,9 @@
 import { memo, type ReactNode } from 'react';
 import { ClinicalSection } from './ClinicalSection';
-import type { LoadState, MedicationRow } from '../types';
+import type { QueryResult, MedicationRow } from '../types';
 
 interface MedicationsCardProps {
-  state: LoadState<MedicationRow[]>;
+  state: QueryResult<MedicationRow[]>;
   provenanceBadge?: ReactNode;
 }
 

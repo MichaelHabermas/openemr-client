@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import type { LoadState } from '../types';
+import type { QueryResult } from '../types';
 import { ClinicalSectionWrapper } from './ClinicalSectionWrapper';
 
 interface PartialRow {
@@ -11,7 +11,7 @@ interface PartialRow {
 interface ClinicalSectionProps<TRow extends PartialRow> {
   title: string;
   titleId?: string;
-  state: LoadState<TRow[]>;
+  state: QueryResult<TRow[]>;
   emptyMessage: string;
   renderRow: (row: TRow) => ReactNode;
   provenanceBadge?: ReactNode;
@@ -35,7 +35,7 @@ export function ClinicalSection<TRow extends PartialRow>({
       emptyMessage={emptyMessage}
       provenanceBadge={provenanceBadge}
       onAdd={onAdd}>
-      {state.status === 'success' ? (
+      {state.status === 'success' && state.data ? (
         <ul className='space-y-0.5'>
           {state.data.map((row) => (
             <li key={row.id}>

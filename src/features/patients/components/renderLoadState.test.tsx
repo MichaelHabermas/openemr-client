@@ -9,14 +9,10 @@ function renderResult(node: ReturnType<typeof renderLoadState>) {
 }
 
 describe('renderLoadState', () => {
-  test('returns skeleton loader for idle state', () => {
-    const html = renderResult(renderLoadState({ status: 'idle' }, 'No data.'));
-    expect(html).toContain('role="status"');
-    expect(html).toContain('animate-pulse');
-  });
-
-  test('returns skeleton loader for loading state', () => {
-    const html = renderResult(renderLoadState({ status: 'loading' }, 'No data.'));
+  test('returns skeleton loader for pending state', () => {
+    const html = renderResult(
+      renderLoadState({ status: 'pending', data: undefined, error: null }, 'No data.', () => false),
+    );
     expect(html).toContain('role="status"');
     expect(html).toContain('animate-pulse');
   });
@@ -26,23 +22,33 @@ describe('renderLoadState', () => {
       renderLoadState(
         {
           status: 'error',
-          error: { status: 502, message: 'Service unavailable.', authRequired: false },
+          data: undefined,
+          error: new Error('Service unavailable.'),
         },
         'No data.',
+        () => false,
       ),
     );
     expect(html).toContain('Service unavailable.');
   });
 
-  test('returns empty message when isEmpty is true', () => {
+  test('returns empty message when isEmpty returns true', () => {
     const html = renderResult(
-      renderLoadState({ status: 'success', data: [], isEmpty: true }, 'Nothing here.'),
+      renderLoadState(
+        { status: 'success', data: [] as number[], error: null },
+        'Nothing here.',
+        (data) => data.length === 0,
+      ),
     );
     expect(html).toContain('Nothing here.');
   });
 
   test('returns null for success with data', () => {
-    const result = renderLoadState({ status: 'success', data: [1, 2], isEmpty: false }, 'No data.');
+    const result = renderLoadState(
+      { status: 'success', data: [1, 2], error: null },
+      'No data.',
+      (data) => data.length === 0,
+    );
     expect(result).toBeNull();
   });
 });

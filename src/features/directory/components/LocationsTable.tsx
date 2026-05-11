@@ -1,5 +1,5 @@
 import { ClinicalTable, type ColumnDef } from '@/features/patients/components/ClinicalTable';
-import type { LoadState } from '@/features/patients/types';
+import type { QueryResult } from '@/features/patients/types';
 import type { LocationRow } from '../types';
 
 const columns: ColumnDef<LocationRow>[] = [
@@ -12,7 +12,7 @@ const columns: ColumnDef<LocationRow>[] = [
 ];
 
 interface LocationsTableProps {
-  state: LoadState<LocationRow[]>;
+  state: QueryResult<LocationRow[]>;
 }
 
 export function LocationsTable({ state }: LocationsTableProps) {

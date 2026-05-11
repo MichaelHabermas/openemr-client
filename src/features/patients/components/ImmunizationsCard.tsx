@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
-import type { ImmunizationRow, LoadState } from '../types';
+import type { ImmunizationRow, QueryResult } from '../types';
 
 interface ImmunizationsCardProps {
-  state: LoadState<ImmunizationRow[]>;
+  state: QueryResult<ImmunizationRow[]>;
   provenanceBadge?: ReactNode;
 }
 

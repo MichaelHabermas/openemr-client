@@ -18,7 +18,9 @@ import type {
   FhirPractitioner,
   FhirPractitionerRole,
   FhirProcedure,
+  FhirMedicationDispense,
   FhirProvenance,
+  FhirQuestionnaireResponse,
   FhirReference,
   FhirRelatedPerson,
   FhirServiceRequest,
@@ -37,10 +39,12 @@ import type {
   GoalRow,
   ImmunizationRow,
   LabRow,
+  MedicationDispenseRow,
   MedicationRow,
   PatientHeaderModel,
   PatientSummary,
   PrescriptionRow,
+  QuestionnaireResponseRow,
   ProblemRow,
   ProcedureRow,
   ProvenanceRecord,
@@ -917,6 +921,61 @@ export function normalizeRelatedPerson(value: unknown): RelatedPersonRow | null 
   };
 }
 
+export function normalizeMedicationDispense(value: unknown): MedicationDispenseRow | null {
+  if (!isResourceType<FhirMedicationDispense>(value, 'MedicationDispense')) return null;
+  const medication =
+    displayCodeableConcept(value.medicationCodeableConcept, '') ||
+    displayReference(value.medicationReference, '') ||
+    UNKNOWN;
+  const qty = value.quantity;
+  const quantity =
+    qty?.value != null ? `${qty.value}${qty.unit ? ` ${qty.unit}` : ''}` : NOT_RECORDED;
+  const ds = value.daysSupply;
+  const daysSupply =
+    ds?.value != null ? `${ds.value}${ds.unit ? ` ${ds.unit}` : ''}` : NOT_RECORDED;
+  const performer = Array.isArray(value.performer)
+    ? value.performer
+        .map((p) => displayReference(p.actor, ''))
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const dosage = Array.isArray(value.dosageInstruction)
+    ? (value.dosageInstruction.map((d) => stringValue(d.text)).find(Boolean) ?? NOT_RECORDED)
+    : NOT_RECORDED;
+  const row = {
+    id: resourceId(value, 'medication-dispense'),
+    medication,
+    status: normalizeStatus(value.status),
+    quantity,
+    daysSupply,
+    whenHandedOver: displayDate(value.whenHandedOver ?? value.whenPrepared),
+    performer: performer || NOT_RECORDED,
+    dosage,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.medication),
+  };
+}
+
+export function normalizeQuestionnaireResponse(value: unknown): QuestionnaireResponseRow | null {
+  if (!isResourceType<FhirQuestionnaireResponse>(value, 'QuestionnaireResponse')) return null;
+  const questionnaire = stringValue(value.questionnaire) ?? UNKNOWN;
+  const items = Array.isArray(value.item) ? value.item : [];
+  const row = {
+    id: resourceId(value, 'questionnaire-response'),
+    questionnaire,
+    status: normalizeStatus(value.status),
+    authored: displayDate(value.authored),
+    author: displayReference(value.author),
+    itemCount: items.length,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.questionnaire),
+  };
+}
+
 export function normalizeEncounterObservation(value: unknown): VitalRow | null {
   if (!isResourceType<FhirObservation>(value, 'Observation')) return null;
   const row = {
@@ -1092,6 +1151,16 @@ export const normalizeClinicalBundle = {
   relatedPersons: (bundle: unknown): RelatedPersonRow[] =>
     bundleEntriesOf<FhirRelatedPerson>(bundle, 'RelatedPerson').flatMap((item) => {
       const row = normalizeRelatedPerson(item);
+      return row ? [row] : [];
+    }),
+  medicationDispenses: (bundle: unknown): MedicationDispenseRow[] =>
+    bundleEntriesOf<FhirMedicationDispense>(bundle, 'MedicationDispense').flatMap((item) => {
+      const row = normalizeMedicationDispense(item);
+      return row ? [row] : [];
+    }),
+  questionnaireResponses: (bundle: unknown): QuestionnaireResponseRow[] =>
+    bundleEntriesOf<FhirQuestionnaireResponse>(bundle, 'QuestionnaireResponse').flatMap((item) => {
+      const row = normalizeQuestionnaireResponse(item);
       return row ? [row] : [];
     }),
   encounterObservations: (bundle: unknown): VitalRow[] =>

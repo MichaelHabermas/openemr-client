@@ -1,10 +1,10 @@
-import type { FhirLocation, FhirOrganization } from '@/types/fhir';
+import type { FhirGroup, FhirLocation, FhirOrganization, FhirPerson } from '@/types/fhir';
 import {
   bundleEntriesOf,
   displayCodeableConcept,
   displayReference,
 } from '@/features/patients/normalizers';
-import type { LocationRow, OrganizationRow } from './types';
+import type { GroupRow, LocationRow, OrganizationRow, PersonRow } from './types';
 
 const UNKNOWN = 'Unknown';
 const NOT_RECORDED = 'Not recorded';
@@ -87,7 +87,8 @@ export function normalizeOrganization(value: unknown): OrganizationRow | null {
         .join(', ')
     : '';
   const addresses = Array.isArray(value.address) ? value.address : [];
-  const address = addresses.length > 0 ? formatAddress(addresses[0]) : NOT_RECORDED;
+  const firstAddr = addresses.find((a) => a != null);
+  const address = firstAddr ? formatAddress(firstAddr) : NOT_RECORDED;
   const name = stringValue(value.name) ?? UNKNOWN;
   const row = {
     id: resourceId(value, 'organization'),
@@ -113,6 +114,75 @@ export function normalizeLocationBundle(bundle: unknown): LocationRow[] {
 export function normalizeOrganizationBundle(bundle: unknown): OrganizationRow[] {
   return bundleEntriesOf<FhirOrganization>(bundle, 'Organization').flatMap((item) => {
     const row = normalizeOrganization(item);
+    return row ? [row] : [];
+  });
+}
+
+function formatHumanName(names: FhirPerson['name']): string {
+  if (!Array.isArray(names) || names.length === 0) return UNKNOWN;
+  const first = names[0];
+  if (!first || !isRecord(first)) return UNKNOWN;
+  const text = stringValue(first.text);
+  if (text) return text;
+  const given = Array.isArray(first.given) ? first.given.filter(Boolean).join(' ') : '';
+  const family = stringValue(first.family) ?? '';
+  const full = [given, family].filter(Boolean).join(' ');
+  return full || UNKNOWN;
+}
+
+export function normalizePerson(value: unknown): PersonRow | null {
+  if (!isResourceType<FhirPerson>(value, 'Person')) return null;
+  const addresses = Array.isArray(value.address) ? value.address : [];
+  const firstAddr = addresses.find((a) => a != null);
+  const name = formatHumanName(value.name);
+  const row = {
+    id: resourceId(value, 'person'),
+    name,
+    gender: stringValue(value.gender) ?? NOT_RECORDED,
+    birthDate: stringValue(value.birthDate) ?? NOT_RECORDED,
+    phone: extractPhone(value.telecom),
+    address: firstAddr ? formatAddress(firstAddr) : NOT_RECORDED,
+    active: value.active === true ? 'Active' : value.active === false ? 'Inactive' : UNKNOWN,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.name),
+  };
+}
+
+export function normalizeGroup(value: unknown): GroupRow | null {
+  if (!isResourceType<FhirGroup>(value, 'Group')) return null;
+  const name = stringValue(value.name) ?? UNKNOWN;
+  const memberCount =
+    typeof value.quantity === 'number'
+      ? String(value.quantity)
+      : Array.isArray(value.member)
+        ? String(value.member.length)
+        : '0';
+  const row = {
+    id: resourceId(value, 'group'),
+    name,
+    type: stringValue(value.type) ?? NOT_RECORDED,
+    memberCount,
+    managingEntity: displayReference(value.managingEntity, NOT_RECORDED),
+    active: value.active === true ? 'Active' : value.active === false ? 'Inactive' : UNKNOWN,
+  };
+  return {
+    ...row,
+    hasPartialData: !hasMeaningfulValue(row.name),
+  };
+}
+
+export function normalizePersonBundle(bundle: unknown): PersonRow[] {
+  return bundleEntriesOf<FhirPerson>(bundle, 'Person').flatMap((item) => {
+    const row = normalizePerson(item);
+    return row ? [row] : [];
+  });
+}
+
+export function normalizeGroupBundle(bundle: unknown): GroupRow[] {
+  return bundleEntriesOf<FhirGroup>(bundle, 'Group').flatMap((item) => {
+    const row = normalizeGroup(item);
     return row ? [row] : [];
   });
 }

@@ -2,8 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 
+import { PatientFeatureApiError } from '../api';
 import { PatientHeader } from './PatientHeader';
-import type { LoadState, PatientHeaderModel } from '../types';
+import type { PatientHeaderModel } from '../types';
 
 const patient: PatientHeaderModel = {
   id: 'patient-1',
@@ -18,7 +19,9 @@ const patient: PatientHeaderModel = {
   searchText: 'ada lovelace',
 };
 
-function render(state: LoadState<PatientHeaderModel | null>, encounterCount?: number | null) {
+type PatientHeaderState = Parameters<typeof PatientHeader>[0]['state'];
+
+function render(state: PatientHeaderState, encounterCount?: number | null) {
   return renderToStaticMarkup(
     <MemoryRouter>
       <PatientHeader state={state} encounterCount={encounterCount} />
@@ -28,7 +31,7 @@ function render(state: LoadState<PatientHeaderModel | null>, encounterCount?: nu
 
 describe('PatientHeader', () => {
   test('renders core patient identity fields', () => {
-    const html = render({ status: 'success', data: patient, isEmpty: false });
+    const html = render({ status: 'success', data: patient, error: null });
 
     expect(html).toContain('Ada Lovelace');
     expect(html).toContain('DOB: April 5, 1980 Age: 46');
@@ -47,7 +50,7 @@ describe('PatientHeader', () => {
           activeStatusDescription: 'Inactive patient record',
           isActive: false,
         },
-        isEmpty: false,
+        error: null,
       }),
     ).toContain('Inactive');
     expect(
@@ -59,46 +62,45 @@ describe('PatientHeader', () => {
           activeStatusDescription: 'Active status not recorded',
           isActive: null,
         },
-        isEmpty: false,
+        error: null,
       }),
     ).toContain('Unknown');
   });
 
   test('renders loading and error states', () => {
-    expect(render({ status: 'loading' })).toContain('Loading patient identity...');
+    expect(render({ status: 'pending', data: undefined, error: null })).toContain(
+      'Loading patient identity...',
+    );
     expect(
       render({
         status: 'error',
-        error: {
-          status: 404,
-          message: 'Patient data was not found.',
-          authRequired: false,
-        },
+        data: undefined,
+        error: new PatientFeatureApiError('Patient data was not found.', 404),
       }),
     ).toContain('Patient was not found.');
   });
 
   test('renders dismiss link back to patient list', () => {
-    const html = render({ status: 'success', data: patient, isEmpty: false });
+    const html = render({ status: 'success', data: patient, error: null });
     expect(html).toContain('×');
     expect(html).toContain('/patients');
     expect(html).toContain('Close patient dashboard');
   });
 
   test('renders Select Encounter with count when encounterCount is provided', () => {
-    const html = render({ status: 'success', data: patient, isEmpty: false }, 3);
+    const html = render({ status: 'success', data: patient, error: null }, 3);
     expect(html).toContain('Select Encounter (3)');
     expect(html).toContain('Open Encounter: None');
   });
 
   test('hides Select Encounter and shows dash when encounterCount is null', () => {
-    const html = render({ status: 'success', data: patient, isEmpty: false }, null);
+    const html = render({ status: 'success', data: patient, error: null }, null);
     expect(html).not.toContain('Select Encounter');
     expect(html).toContain('Open Encounter: —');
   });
 
   test('renders Select Encounter (0) when encounterCount is zero', () => {
-    const html = render({ status: 'success', data: patient, isEmpty: false }, 0);
+    const html = render({ status: 'success', data: patient, error: null }, 0);
     expect(html).toContain('Select Encounter (0)');
     expect(html).toContain('Open Encounter: None');
   });

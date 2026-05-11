@@ -13,9 +13,11 @@ import { GoalsCard } from './GoalsCard';
 import { ImmunizationsCard } from './ImmunizationsCard';
 import { InsuranceCard } from './InsuranceCard';
 import { LabResultsCard } from './LabResultsCard';
+import { MedicationDispenseCard } from './MedicationDispenseCard';
 import { MedicationsCard } from './MedicationsCard';
 import { PatientHeader } from './PatientHeader';
 import { PrescriptionsCard } from './PrescriptionsCard';
+import { QuestionnaireResponseCard } from './QuestionnaireResponseCard';
 import { ProblemListCard } from './ProblemListCard';
 import { ProceduresCard } from './ProceduresCard';
 import { RelatedPersonsCard } from './RelatedPersonsCard';
@@ -36,13 +38,15 @@ import type {
   GoalRow,
   ImmunizationRow,
   LabRow,
-  LoadState,
+  MedicationDispenseRow,
   MedicationRow,
   PatientHeaderModel,
   PrescriptionRow,
   ProblemRow,
   ProcedureRow,
   ProvenanceRecord,
+  QuestionnaireResponseRow,
+  QueryResult,
   RelatedPersonRow,
   ServiceRequestRow,
   SocialHistoryRow,
@@ -64,29 +68,31 @@ const TAB_LABELS = [
 type TabLabel = (typeof TAB_LABELS)[number];
 
 interface PatientDashboardShellProps {
-  patient: LoadState<PatientHeaderModel | null>;
-  allergies: LoadState<AllergyRow[]>;
-  problems: LoadState<ProblemRow[]>;
-  medications: LoadState<MedicationRow[]>;
-  prescriptions: LoadState<PrescriptionRow[]>;
-  careTeam: LoadState<CareTeamRow[]>;
-  encounters: LoadState<EncounterRow[]>;
-  immunizations: LoadState<ImmunizationRow[]>;
-  vitals: LoadState<VitalRow[]>;
-  labs: LoadState<LabRow[]>;
-  procedures: LoadState<ProcedureRow[]>;
-  documents: LoadState<DocumentRow[]>;
-  coverage: LoadState<CoverageRow[]>;
-  diagnosticReports: LoadState<DiagnosticReportRow[]>;
-  goals: LoadState<GoalRow[]>;
-  carePlans: LoadState<CarePlanRow[]>;
-  socialHistory: LoadState<SocialHistoryRow[]>;
-  familyHistory: LoadState<FamilyHistoryRow[]>;
-  appointments: LoadState<AppointmentRow[]>;
-  devices: LoadState<DeviceRow[]>;
-  serviceRequests: LoadState<ServiceRequestRow[]>;
-  relatedPersons: LoadState<RelatedPersonRow[]>;
-  provenance: LoadState<ProvenanceRecord[]>;
+  patient: QueryResult<PatientHeaderModel | null>;
+  allergies: QueryResult<AllergyRow[]>;
+  problems: QueryResult<ProblemRow[]>;
+  medications: QueryResult<MedicationRow[]>;
+  prescriptions: QueryResult<PrescriptionRow[]>;
+  careTeam: QueryResult<CareTeamRow[]>;
+  encounters: QueryResult<EncounterRow[]>;
+  immunizations: QueryResult<ImmunizationRow[]>;
+  vitals: QueryResult<VitalRow[]>;
+  labs: QueryResult<LabRow[]>;
+  procedures: QueryResult<ProcedureRow[]>;
+  documents: QueryResult<DocumentRow[]>;
+  coverage: QueryResult<CoverageRow[]>;
+  diagnosticReports: QueryResult<DiagnosticReportRow[]>;
+  goals: QueryResult<GoalRow[]>;
+  carePlans: QueryResult<CarePlanRow[]>;
+  socialHistory: QueryResult<SocialHistoryRow[]>;
+  familyHistory: QueryResult<FamilyHistoryRow[]>;
+  appointments: QueryResult<AppointmentRow[]>;
+  devices: QueryResult<DeviceRow[]>;
+  serviceRequests: QueryResult<ServiceRequestRow[]>;
+  relatedPersons: QueryResult<RelatedPersonRow[]>;
+  medicationDispenses: QueryResult<MedicationDispenseRow[]>;
+  questionnaireResponses: QueryResult<QuestionnaireResponseRow[]>;
+  provenance: QueryResult<ProvenanceRecord[]>;
   patientId?: string;
 }
 
@@ -113,10 +119,13 @@ export function PatientDashboardShell({
   devices,
   serviceRequests,
   relatedPersons,
+  medicationDispenses,
+  questionnaireResponses,
   provenance,
   patientId,
 }: PatientDashboardShellProps) {
-  const provenanceRecords = provenance.status === 'success' ? provenance.data : [];
+  const provenanceRecords =
+    provenance.status === 'success' && provenance.data ? provenance.data : [];
   const badge = (resourceType: string) =>
     provenanceRecords.length > 0 ? (
       <ProvenanceBadge records={provenanceRecords} resourceType={resourceType} />
@@ -124,7 +133,8 @@ export function PatientDashboardShell({
   const patientName =
     patient.status === 'success' && patient.data ? patient.data.displayName : null;
 
-  const encounterCount = encounters.status === 'success' ? encounters.data.length : null;
+  const encounterCount =
+    encounters.status === 'success' && encounters.data ? encounters.data.length : null;
   const [activeTab, setActiveTab] = useState<TabLabel>('Dashboard');
 
   return (
@@ -173,6 +183,10 @@ export function PatientDashboardShell({
           </div>
 
           <PrescriptionsCard state={prescriptions} provenanceBadge={badge('MedicationRequest')} />
+          <MedicationDispenseCard
+            state={medicationDispenses}
+            provenanceBadge={badge('MedicationDispense')}
+          />
           <VitalsCard state={vitals} provenanceBadge={badge('Observation')} />
           <LabResultsCard state={labs} provenanceBadge={badge('Observation')} />
           <ImmunizationsCard state={immunizations} provenanceBadge={badge('Immunization')} />
@@ -191,14 +205,24 @@ export function PatientDashboardShell({
           <DevicesCard state={devices} provenanceBadge={badge('Device')} />
           <ServiceRequestsCard state={serviceRequests} provenanceBadge={badge('ServiceRequest')} />
           <RelatedPersonsCard state={relatedPersons} provenanceBadge={badge('RelatedPerson')} />
+          <QuestionnaireResponseCard
+            state={questionnaireResponses}
+            provenanceBadge={badge('QuestionnaireResponse')}
+          />
         </>
       ) : activeTab === 'History' ? (
         <ProceduresCard state={procedures} provenanceBadge={badge('Procedure')} />
       ) : activeTab === 'Assessments' ? (
-        <DiagnosticReportsCard
-          state={diagnosticReports}
-          provenanceBadge={badge('DiagnosticReport')}
-        />
+        <>
+          <DiagnosticReportsCard
+            state={diagnosticReports}
+            provenanceBadge={badge('DiagnosticReport')}
+          />
+          <QuestionnaireResponseCard
+            state={questionnaireResponses}
+            provenanceBadge={badge('QuestionnaireResponse')}
+          />
+        </>
       ) : activeTab === 'Report' ? (
         <DiagnosticReportsCard
           state={diagnosticReports}

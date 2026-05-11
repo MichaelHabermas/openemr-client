@@ -32,6 +32,10 @@ export interface CreateAppOptions {
   services: AppServices;
 }
 
+interface ProtectedRouteOptions {
+  preserveSession?: boolean;
+}
+
 type ProtectedFhirRequestHandler = (accessToken: string, req: express.Request) => Promise<unknown>;
 
 function firstQueryString(value: express.Request['query'][string]): string | undefined {
@@ -51,6 +55,7 @@ function patientIdParam(req: express.Request): string {
 function protectedFhirRoute(
   operation: string,
   handler: ProtectedFhirRequestHandler,
+  options?: ProtectedRouteOptions,
 ): express.RequestHandler {
   return async (req, res) => {
     const token = readAccessTokenCookie(req);
@@ -69,7 +74,7 @@ function protectedFhirRoute(
         status: mapped.status,
         error: mapped.body.error,
       });
-      if (mapped.status === 401) {
+      if (mapped.status === 401 && !options?.preserveSession) {
         clearAccessTokenCookie(res);
       }
       res.status(mapped.status).json(mapped.body);
@@ -233,6 +238,67 @@ export function createApp({ config, services }: CreateAppOptions) {
   );
 
   app.get(
+    '/api/patients/:patientId/medication-dispenses',
+    validatePid,
+    patientClinicalRoute('medication-dispenses'),
+  );
+
+  app.get(
+    '/api/patients/:patientId/questionnaire-responses',
+    validatePid,
+    patientClinicalRoute('questionnaire-responses'),
+  );
+
+  const clinicalSummaryEntries: [ClinicalResourceKey, string][] = [
+    ['allergies', 'allergies'],
+    ['problems', 'problems'],
+    ['medications', 'medications'],
+    ['prescriptions', 'prescriptions'],
+    ['care-team', 'careTeam'],
+    ['encounters', 'encounters'],
+    ['immunizations', 'immunizations'],
+    ['vitals', 'vitals'],
+    ['labs', 'labs'],
+    ['social-history', 'socialHistory'],
+    ['procedures', 'procedures'],
+    ['documents', 'documents'],
+    ['coverage', 'coverage'],
+    ['diagnostic-reports', 'diagnosticReports'],
+    ['goals', 'goals'],
+    ['care-plans', 'carePlans'],
+    ['family-history', 'familyHistory'],
+    ['appointments', 'appointments'],
+    ['devices', 'devices'],
+    ['service-requests', 'serviceRequests'],
+    ['related-persons', 'relatedPersons'],
+    ['medication-dispenses', 'medicationDispenses'],
+    ['questionnaire-responses', 'questionnaireResponses'],
+  ];
+
+  app.get(
+    '/api/patients/:patientId/clinical-summary',
+    validatePid,
+    protectedFhirRoute(
+      'fetchPatientClinicalSummary',
+      async (token, req) => {
+        const pid = patientIdParam(req);
+        const results = await Promise.allSettled(
+          clinicalSummaryEntries.map(([key]) =>
+            services.fhir.fetchPatientClinicalBundle(token, key, pid),
+          ),
+        );
+        const summary: Record<string, unknown> = {};
+        clinicalSummaryEntries.forEach(([, responseKey], i) => {
+          const r = results[i];
+          summary[responseKey] = r.status === 'fulfilled' ? r.value : null;
+        });
+        return summary;
+      },
+      { preserveSession: true },
+    ),
+  );
+
+  app.get(
     '/api/patients/:patientId/encounters/:encounterId',
     validatePid,
     protectedFhirRoute('fetchEncounter', (token, req) => {
@@ -293,30 +359,54 @@ export function createApp({ config, services }: CreateAppOptions) {
 
   app.get(
     '/api/practitioners/:practitionerId/roles',
-    protectedFhirRoute('fetchPractitionerRoles', (token, req) => {
-      const { practitionerId } = req.params;
-      const id = Array.isArray(practitionerId) ? practitionerId[0] : practitionerId;
-      return services.fhir.fetchPractitionerRoles(token, id);
-    }),
+    protectedFhirRoute(
+      'fetchPractitionerRoles',
+      (token, req) => {
+        const { practitionerId } = req.params;
+        const id = Array.isArray(practitionerId) ? practitionerId[0] : practitionerId;
+        return services.fhir.fetchPractitionerRoles(token, id);
+      },
+      { preserveSession: true },
+    ),
   );
 
   app.get(
     '/api/locations',
-    protectedFhirRoute('fetchLocationBundle', (token) => services.fhir.fetchLocationBundle(token)),
+    protectedFhirRoute('fetchLocationBundle', (token) => services.fhir.fetchLocationBundle(token), {
+      preserveSession: true,
+    }),
   );
 
   app.get(
     '/api/organizations',
-    protectedFhirRoute('fetchOrganizationBundle', (token) =>
-      services.fhir.fetchOrganizationBundle(token),
+    protectedFhirRoute(
+      'fetchOrganizationBundle',
+      (token) => services.fhir.fetchOrganizationBundle(token),
+      { preserveSession: true },
     ),
   );
 
   app.get(
     '/api/medications-catalog',
-    protectedFhirRoute('fetchMedicationBundle', (token) =>
-      services.fhir.fetchMedicationBundle(token),
+    protectedFhirRoute(
+      'fetchMedicationBundle',
+      (token) => services.fhir.fetchMedicationBundle(token),
+      { preserveSession: true },
     ),
+  );
+
+  app.get(
+    '/api/persons',
+    protectedFhirRoute('fetchPersonBundle', (token) => services.fhir.fetchPersonBundle(token), {
+      preserveSession: true,
+    }),
+  );
+
+  app.get(
+    '/api/groups',
+    protectedFhirRoute('fetchGroupBundle', (token) => services.fhir.fetchGroupBundle(token), {
+      preserveSession: true,
+    }),
   );
 
   app.post(
@@ -346,8 +436,10 @@ export function createApp({ config, services }: CreateAppOptions) {
   app.get(
     '/api/patients/:patientId/provenance',
     validatePid,
-    protectedFhirRoute('fetchPatientProvenance', (token, req) =>
-      services.fhir.fetchPatientProvenance(token, patientIdParam(req)),
+    protectedFhirRoute(
+      'fetchPatientProvenance',
+      (token, req) => services.fhir.fetchPatientProvenance(token, patientIdParam(req)),
+      { preserveSession: true },
     ),
   );
 

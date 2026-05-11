@@ -80,7 +80,7 @@ describe('loadConfig', () => {
     setRequiredEnv();
 
     expect(loadConfig().oauthScope).toBe(
-      'openid api:fhir api:oemr user/Patient.rs user/AllergyIntolerance.rs user/Condition.rs user/MedicationRequest.rs user/CareTeam.rs user/Encounter.rs user/Immunization.rs user/Observation.rs user/Practitioner.rs user/Procedure.rs user/DocumentReference.rs user/Coverage.rs user/DiagnosticReport.rs user/Goal.rs user/CarePlan.rs',
+      'openid api:fhir api:oemr user/Patient.rs user/AllergyIntolerance.rs user/Condition.rs user/MedicationRequest.rs user/CareTeam.rs user/Encounter.rs user/Immunization.rs user/Observation.rs user/Practitioner.rs user/Procedure.rs user/DocumentReference.rs user/Coverage.rs user/DiagnosticReport.rs user/Goal.rs user/CarePlan.rs user/Organization.rs user/PractitionerRole.rs user/Provenance.rs user/Device.rs user/ServiceRequest.rs user/RelatedPerson.rs user/MedicationDispense.rs user/QuestionnaireResponse.rs user/Location.read user/Medication.read user/Appointment.read user/Binary.read user/Person.read user/Group.read',
     );
   });
 

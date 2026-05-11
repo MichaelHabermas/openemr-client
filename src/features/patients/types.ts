@@ -1,15 +1,8 @@
-export interface PatientFeatureError {
-  status: number;
-  code?: string;
-  message: string;
-  authRequired: boolean;
+export interface QueryResult<T> {
+  status: 'pending' | 'success' | 'error';
+  data: T | undefined;
+  error: Error | null;
 }
-
-export type LoadState<T> =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'success'; data: T; isEmpty: boolean }
-  | { status: 'error'; error: PatientFeatureError };
 
 export interface PatientSummary {
   id: string;
@@ -249,6 +242,54 @@ export interface RelatedPersonRow {
   phone: string;
   address: string;
   hasPartialData: boolean;
+}
+
+export interface MedicationDispenseRow {
+  id: string;
+  medication: string;
+  status: string;
+  quantity: string;
+  daysSupply: string;
+  whenHandedOver: string;
+  performer: string;
+  dosage: string;
+  hasPartialData: boolean;
+}
+
+export interface QuestionnaireResponseRow {
+  id: string;
+  questionnaire: string;
+  status: string;
+  authored: string;
+  author: string;
+  itemCount: number;
+  hasPartialData: boolean;
+}
+
+export interface ClinicalSummary {
+  allergies: AllergyRow[];
+  problems: ProblemRow[];
+  medications: MedicationRow[];
+  prescriptions: PrescriptionRow[];
+  careTeam: CareTeamRow[];
+  encounters: EncounterRow[];
+  immunizations: ImmunizationRow[];
+  vitals: VitalRow[];
+  labs: LabRow[];
+  procedures: ProcedureRow[];
+  documents: DocumentRow[];
+  coverage: CoverageRow[];
+  diagnosticReports: DiagnosticReportRow[];
+  goals: GoalRow[];
+  carePlans: CarePlanRow[];
+  socialHistory: SocialHistoryRow[];
+  familyHistory: FamilyHistoryRow[];
+  appointments: AppointmentRow[];
+  devices: DeviceRow[];
+  serviceRequests: ServiceRequestRow[];
+  relatedPersons: RelatedPersonRow[];
+  medicationDispenses: MedicationDispenseRow[];
+  questionnaireResponses: QuestionnaireResponseRow[];
 }
 
 export interface ProvenanceRecord {

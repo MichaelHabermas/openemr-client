@@ -1,10 +1,10 @@
 import { memo, useState, type ReactNode } from 'react';
 import { ClinicalSection } from './ClinicalSection';
 import { CreateAllergyForm } from './CreateAllergyForm';
-import type { AllergyRow, LoadState } from '../types';
+import type { AllergyRow, QueryResult } from '../types';
 
 interface AllergiesCardProps {
-  state: LoadState<AllergyRow[]>;
+  state: QueryResult<AllergyRow[]>;
   patientId?: string;
   provenanceBadge?: ReactNode;
 }

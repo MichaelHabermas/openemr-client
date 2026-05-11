@@ -54,3 +54,11 @@ export function fetchLocations(): Promise<unknown> {
 export function fetchOrganizations(): Promise<unknown> {
   return getJson('/api/organizations');
 }
+
+export function fetchPersons(): Promise<unknown> {
+  return getJson('/api/persons');
+}
+
+export function fetchGroups(): Promise<unknown> {
+  return getJson('/api/groups');
+}

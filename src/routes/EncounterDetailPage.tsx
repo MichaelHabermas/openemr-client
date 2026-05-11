@@ -57,7 +57,11 @@ export function EncounterDetailPage() {
     return <Navigate to='/patients' replace />;
   }
 
-  const encounterFallback = renderLoadState(encounter, 'Encounter not found.');
+  const encounterFallback = renderLoadState(
+    encounter,
+    'Encounter not found.',
+    (data) => data === null,
+  );
 
   return (
     <div className='space-y-4'>

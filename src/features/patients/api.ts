@@ -160,6 +160,10 @@ export function fetchPatientRelatedPersons(patientId: string): Promise<unknown> 
   return getJson(patientPath(patientId, '/related-persons'));
 }
 
+export function fetchPatientClinicalSummary(patientId: string): Promise<unknown> {
+  return getJson(patientPath(patientId, '/clinical-summary'));
+}
+
 export function fetchEncounterDetail(patientId: string, encounterId: string): Promise<unknown> {
   return getJson(patientPath(patientId, `/encounters/${encodeURIComponent(encounterId)}`));
 }

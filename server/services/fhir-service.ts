@@ -23,6 +23,8 @@ const resourceTypesByKey = {
   devices: 'Device',
   'service-requests': 'ServiceRequest',
   'related-persons': 'RelatedPerson',
+  'medication-dispenses': 'MedicationDispense',
+  'questionnaire-responses': 'QuestionnaireResponse',
 } as const;
 
 const categoryByKey: Partial<Record<ClinicalResourceKey, string>> = {
@@ -52,6 +54,8 @@ export interface FhirService {
   fetchOrganizationBundle(accessToken: string): Promise<unknown>;
   fetchMedicationBundle(accessToken: string): Promise<unknown>;
   fetchPractitionerRoles(accessToken: string, practitionerId: string): Promise<unknown>;
+  fetchPersonBundle(accessToken: string): Promise<unknown>;
+  fetchGroupBundle(accessToken: string): Promise<unknown>;
   createAllergyIntolerance(accessToken: string, body: unknown): Promise<unknown>;
   createCondition(accessToken: string, body: unknown): Promise<unknown>;
   createAppointment(accessToken: string, body: unknown): Promise<unknown>;
@@ -138,6 +142,16 @@ export function createFhirService(config: AppConfig): FhirService {
     async fetchPractitionerRoles(accessToken: string, practitionerId: string) {
       const url = new URL('PractitionerRole', fhirBaseUrl);
       url.searchParams.set('practitioner', `Practitioner/${practitionerId}`);
+      return getFhirResource(accessToken, url);
+    },
+
+    async fetchPersonBundle(accessToken: string) {
+      const url = new URL('Person', fhirBaseUrl);
+      return getFhirResource(accessToken, url);
+    },
+
+    async fetchGroupBundle(accessToken: string) {
+      const url = new URL('Group', fhirBaseUrl);
       return getFhirResource(accessToken, url);
     },
 

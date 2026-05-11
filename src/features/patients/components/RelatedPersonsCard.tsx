@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
-import type { LoadState, RelatedPersonRow } from '../types';
+import type { QueryResult, RelatedPersonRow } from '../types';
 
 interface RelatedPersonsCardProps {
-  state: LoadState<RelatedPersonRow[]>;
+  state: QueryResult<RelatedPersonRow[]>;
   provenanceBadge?: ReactNode;
 }
 

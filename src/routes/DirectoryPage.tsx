@@ -1,25 +1,14 @@
-import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-
+import { GroupsTable } from '@/features/directory/components/GroupsTable';
 import { LocationsTable } from '@/features/directory/components/LocationsTable';
 import { OrganizationsTable } from '@/features/directory/components/OrganizationsTable';
-import { useLocations, useOrganizations } from '@/features/directory/hooks';
+import { PersonsTable } from '@/features/directory/components/PersonsTable';
+import { useGroups, useLocations, useOrganizations, usePersons } from '@/features/directory/hooks';
 
 export function DirectoryPage() {
-  const navigate = useNavigate();
   const locationsState = useLocations();
   const organizationsState = useOrganizations();
-  const hasRedirected = useRef(false);
-
-  useEffect(() => {
-    const authRequired =
-      (locationsState.status === 'error' && locationsState.error.authRequired) ||
-      (organizationsState.status === 'error' && organizationsState.error.authRequired);
-    if (authRequired && !hasRedirected.current) {
-      hasRedirected.current = true;
-      navigate('/');
-    }
-  }, [navigate, locationsState, organizationsState]);
+  const personsState = usePersons();
+  const groupsState = useGroups();
 
   return (
     <div className='space-y-6'>
@@ -32,6 +21,8 @@ export function DirectoryPage() {
 
       <LocationsTable state={locationsState} />
       <OrganizationsTable state={organizationsState} />
+      <PersonsTable state={personsState} />
+      <GroupsTable state={groupsState} />
     </div>
   );
 }

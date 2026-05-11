@@ -1,10 +1,10 @@
 import { memo, useState, type ReactNode } from 'react';
 import { ClinicalSection } from './ClinicalSection';
 import { CreateProblemForm } from './CreateProblemForm';
-import type { LoadState, ProblemRow } from '../types';
+import type { QueryResult, ProblemRow } from '../types';
 
 interface ProblemListCardProps {
-  state: LoadState<ProblemRow[]>;
+  state: QueryResult<ProblemRow[]>;
   patientId?: string;
   provenanceBadge?: ReactNode;
 }

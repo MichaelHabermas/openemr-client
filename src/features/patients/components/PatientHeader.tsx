@@ -1,15 +1,16 @@
 import { Link } from 'react-router-dom';
 import { User } from 'lucide-react';
 
-import type { LoadState, PatientHeaderModel } from '../types';
+import { PatientFeatureApiError } from '../api';
+import type { PatientHeaderModel, QueryResult } from '../types';
 
 interface PatientHeaderProps {
-  state: LoadState<PatientHeaderModel | null>;
+  state: QueryResult<PatientHeaderModel | null>;
   encounterCount?: number | null;
 }
 
 export function PatientHeader({ state, encounterCount }: PatientHeaderProps) {
-  if (state.status === 'loading' || state.status === 'idle') {
+  if (state.status === 'pending') {
     return (
       <div
         className='bg-patient-header-bg text-patient-header-fg rounded border px-4 py-2'
@@ -22,13 +23,13 @@ export function PatientHeader({ state, encounterCount }: PatientHeaderProps) {
   }
 
   if (state.status === 'error') {
-    const notFound = state.error.status === 404;
+    const notFound = state.error instanceof PatientFeatureApiError && state.error.status === 404;
     return (
       <div className='bg-patient-header-bg text-patient-header-fg rounded border px-4 py-2'>
         <p className='text-destructive text-sm' role='alert'>
           {notFound
             ? 'Patient was not found.'
-            : `Patient header could not be loaded. ${state.error.message}`}
+            : `Patient header could not be loaded. ${state.error?.message ?? ''}`}
         </p>
         <Link className='text-primary text-sm underline' to='/patients'>
           Back to patients
@@ -37,7 +38,7 @@ export function PatientHeader({ state, encounterCount }: PatientHeaderProps) {
     );
   }
 
-  if (state.isEmpty || !state.data) {
+  if (!state.data) {
     return (
       <div className='bg-patient-header-bg text-patient-header-fg rounded border px-4 py-2'>
         <p className='text-muted-foreground text-sm'>Patient record could not be displayed.</p>

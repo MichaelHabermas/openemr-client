@@ -1,47 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
-import type { LoadState, PatientFeatureError } from '@/features/patients/types';
-
-import { MedicationCatalogApiError, fetchMedicationsCatalog } from './api';
+import { fetchMedicationsCatalog, type MedicationCatalogApiError } from './api';
 import { normalizeMedicationCatalogBundle } from './normalizers';
 import type { MedicationCatalogRow } from './types';
 
-function toError(error: unknown): PatientFeatureError {
-  if (error instanceof MedicationCatalogApiError) {
-    return {
-      status: error.status,
-      code: error.code,
-      message: error.message,
-      authRequired: error.authRequired,
-    };
-  }
-  return { status: 0, message: 'Data could not be loaded.', authRequired: false };
-}
+export type MedicationQuery<T> = UseQueryResult<T, MedicationCatalogApiError>;
 
-function useAsyncState<T>(load: () => Promise<T>, isEmpty: (data: T) => boolean): LoadState<T> {
-  const [state, setState] = useState<LoadState<T>>({ status: 'loading' });
+export const medicationKeys = {
+  catalog: ['medications', 'catalog'] as const,
+};
 
-  useEffect(() => {
-    let cancelled = false;
-    void load()
-      .then((data) => {
-        if (!cancelled) setState({ status: 'success', data, isEmpty: isEmpty(data) });
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ status: 'error', error: toError(error) });
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return state;
-}
-
-export function useMedicationsCatalog(): LoadState<MedicationCatalogRow[]> {
-  return useAsyncState(
-    async () => normalizeMedicationCatalogBundle(await fetchMedicationsCatalog()),
-    (rows) => rows.length === 0,
-  );
+export function useMedicationsCatalog(): MedicationQuery<MedicationCatalogRow[]> {
+  return useQuery({
+    queryKey: medicationKeys.catalog,
+    queryFn: async () => normalizeMedicationCatalogBundle(await fetchMedicationsCatalog()),
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+  });
 }

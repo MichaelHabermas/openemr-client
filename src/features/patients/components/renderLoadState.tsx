@@ -1,22 +1,30 @@
 import type { ReactNode } from 'react';
 
-import type { LoadState } from '../types';
+import type { QueryResult } from '../types';
 import { SkeletonLoader } from './SkeletonLoader';
 
-export function renderLoadState<T>(state: LoadState<T>, emptyMessage: string): ReactNode | null {
-  if (state.status === 'loading' || state.status === 'idle') {
+export function renderLoadState<T>(
+  query: QueryResult<T>,
+  emptyMessage: string,
+  isEmpty: (data: T) => boolean,
+): ReactNode | null {
+  if (query.status === 'pending') {
     return <SkeletonLoader />;
   }
 
-  if (state.status === 'error') {
+  if (query.status === 'error') {
     return (
       <p className='text-destructive text-xs' role='alert'>
-        {state.error.message}
+        {query.error?.message ?? 'An error occurred.'}
       </p>
     );
   }
 
-  if (state.isEmpty) {
+  if (query.data != null && isEmpty(query.data)) {
+    return <p className='text-muted-foreground text-xs'>{emptyMessage}</p>;
+  }
+
+  if (query.data == null) {
     return <p className='text-muted-foreground text-xs'>{emptyMessage}</p>;
   }
 

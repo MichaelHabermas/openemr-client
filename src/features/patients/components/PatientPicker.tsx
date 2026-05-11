@@ -1,28 +1,31 @@
 import { useId, useMemo, useState } from 'react';
 
 import { filterPatients } from '../patient-search';
-import type { LoadState, PatientSummary } from '../types';
+import type { PatientSummary, QueryResult } from '../types';
 import { PatientList } from './PatientList';
 import { PatientSearchField } from './PatientSearchField';
 
 interface PatientPickerProps {
-  state: LoadState<PatientSummary[]>;
+  state: QueryResult<PatientSummary[]>;
 }
 
 export function PatientPicker({ state }: PatientPickerProps) {
   const [query, setQuery] = useState('');
   const resultCountId = useId();
-  const patients = useMemo(() => (state.status === 'success' ? state.data : []), [state]);
+  const patients = useMemo(
+    () => (state.status === 'success' && state.data ? state.data : []),
+    [state],
+  );
   const filteredPatients = useMemo(() => filterPatients(patients, query), [patients, query]);
 
-  if (state.status === 'loading' || state.status === 'idle') {
+  if (state.status === 'pending') {
     return <p className='text-muted-foreground text-sm'>Loading...</p>;
   }
 
   if (state.status === 'error') {
     return (
       <p className='text-destructive text-sm' role='alert'>
-        {state.error.message}
+        {state.error?.message ?? 'An error occurred.'}
       </p>
     );
   }
@@ -33,7 +36,7 @@ export function PatientPicker({ state }: PatientPickerProps) {
       <p id={resultCountId} className='text-muted-foreground text-sm' aria-live='polite'>
         {resultText(query, filteredPatients.length, patients.length)}
       </p>
-      {state.isEmpty ? (
+      {patients.length === 0 ? (
         <p className='text-muted-foreground text-sm'>No patients found.</p>
       ) : filteredPatients.length === 0 ? (
         <p className='text-muted-foreground text-sm'>No patients match "{query.trim()}".</p>

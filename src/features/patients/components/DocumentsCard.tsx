@@ -3,10 +3,10 @@ import { useParams } from 'react-router-dom';
 
 import { ClinicalTable, type ColumnDef } from './ClinicalTable';
 import { DocumentViewButton } from './DocumentViewButton';
-import type { DocumentRow, LoadState } from '../types';
+import type { DocumentRow, QueryResult } from '../types';
 
 interface DocumentsCardProps {
-  state: LoadState<DocumentRow[]>;
+  state: QueryResult<DocumentRow[]>;
   provenanceBadge?: ReactNode;
 }
 

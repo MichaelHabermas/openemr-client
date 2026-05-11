@@ -1,5 +1,5 @@
 import { ClinicalTable, type ColumnDef } from '@/features/patients/components/ClinicalTable';
-import type { LoadState } from '@/features/patients/types';
+import type { QueryResult } from '@/features/patients/types';
 import type { MedicationCatalogRow } from '../types';
 
 const columns: ColumnDef<MedicationCatalogRow>[] = [
@@ -10,7 +10,7 @@ const columns: ColumnDef<MedicationCatalogRow>[] = [
 ];
 
 interface MedicationsCatalogTableProps {
-  state: LoadState<MedicationCatalogRow[]>;
+  state: QueryResult<MedicationCatalogRow[]>;
 }
 
 export function MedicationsCatalogTable({ state }: MedicationsCatalogTableProps) {

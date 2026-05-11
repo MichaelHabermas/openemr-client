@@ -1,13 +1,13 @@
 import { useId, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight, Pencil, Plus } from 'lucide-react';
 
-import type { LoadState } from '../types';
+import type { QueryResult } from '../types';
 import { renderLoadState } from './renderLoadState';
 
 interface ClinicalSectionWrapperProps {
   title: string;
   titleId?: string;
-  state: LoadState<{ length: number }>;
+  state: QueryResult<{ length: number }>;
   emptyMessage: string;
   children: ReactNode;
   defaultCollapsed?: boolean;
@@ -28,8 +28,8 @@ export function ClinicalSectionWrapper({
   const generatedId = useId();
   const resolvedTitleId = titleId ?? generatedId;
   const contentId = `${resolvedTitleId}-content`;
-  const count = state.status === 'success' ? state.data.length : null;
-  const fallback = renderLoadState(state, emptyMessage);
+  const count = state.status === 'success' && state.data ? state.data.length : null;
+  const fallback = renderLoadState(state, emptyMessage, (data) => data.length === 0);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const CollapseIcon = collapsed ? ChevronRight : ChevronDown;
 
